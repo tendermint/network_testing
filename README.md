@@ -29,7 +29,7 @@ echo "{}" > mon.json
 netmon chains-and-vals chain mon.json $NODE_DIRS
 
 # start the netmon in bench mode and fire the transactions
-netmon bench mon.json $RESULTS $N_TXS -- go run transact.go $N_TXS
+netmon bench mon.json $RESULTS $N_TXS go run transact.go $N_TXS
 ```
 
 

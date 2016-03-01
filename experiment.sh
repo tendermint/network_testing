@@ -48,7 +48,8 @@ echo "{}" > mon.json
 netmon chains-and-vals chain mon.json $NODE_DIRS
 
 # start the netmon in bench mode and fire the transactions
-netmon bench mon.json $RESULTS $N_TXS -- go run transact.go $N_TXS
+mkdir -p $RESULTS
+netmon bench mon.json $RESULTS $N_TXS go run transact.go $N_TXS
 
 # once the txs all get committed, the netmon process will finish.
 # locally timestamped blocks get spat to stdout, and a results summary gets written to file

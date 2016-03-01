@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/binary"
 	"encoding/hex"
 	"fmt"
@@ -28,10 +29,12 @@ func main() {
 	cli := rpcclient.NewClientURI("localhost:46657")
 	params := map[string]interface{}{}
 	var result ctypes.TMResult
+	tx := make([]byte, 250)
+	rand.Read(tx[242:])
 	for i := 0; i < nTxs; i++ {
-		tx := make([]byte, 250)
-		binary.PutUvarint(tx, uint64(i))
+		binary.PutUvarint(tx, uint64(i)) // guaranteed to overwrite because we're incrementing
 		params["tx"] = hex.EncodeToString(tx)
+
 		if _, err := cli.Call("broadcast_tx_sync", params, &result); err != nil {
 			fmt.Println("Error sending tx:", err)
 			os.Exit(1)

@@ -23,7 +23,7 @@ RESULTS=$7
 n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
 if (("$n" < "$N")); then
 	# launch the nodes
-	bash launch.sh $MACH_PREFIX $GLOBAL $(($n+1)) $N
+	bash utils/launch.sh $MACH_PREFIX $GLOBAL $(($n+1)) $N
 	if [[ $? != 0 ]]; then
 		echo "launch failed"
 		exit 1
@@ -38,10 +38,10 @@ fi
 NODE_DIRS=${MACH_PREFIX}_data
 
 # make all node data and start the node on every machine 
-bash start.sh $MACH_PREFIX $N $NODE_DIRS
+bash test_rpc/start.sh $MACH_PREFIX $N $NODE_DIRS
 
 # start the local proxy
-bash proxy.sh $MACH_PREFIX $N $NODE_DIRS
+bash test_rpc/proxy.sh $MACH_PREFIX $N $NODE_DIRS
 
 # massage the config file
 echo "{}" > mon.json
@@ -49,7 +49,7 @@ netmon chains-and-vals chain mon.json $NODE_DIRS
 
 # start the netmon in bench mode and fire the transactions
 mkdir -p $RESULTS
-netmon bench mon.json $RESULTS $N_TXS go run transact.go $N_TXS
+netmon bench mon.json $RESULTS $N_TXS go run utils/transact.go $N_TXS
 
 # once the txs all get committed, the netmon process will finish.
 # locally timestamped blocks get spat to stdout, and a results summary gets written to file

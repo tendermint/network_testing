@@ -96,6 +96,8 @@ func RunNode() {
 	}
 
 	// preload some txs into mempool
+	// TODO: no need to have this in process ...
+	// TODO: expose config rpc endpoint
 	if nTxs := config.GetInt("preload_txs"); nTxs > 0 {
 		log.Notice(Fmt("Preloading %d txs into mempool and disabling the reactor", nTxs))
 		start := time.Now()

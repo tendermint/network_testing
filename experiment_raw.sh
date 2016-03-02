@@ -60,7 +60,7 @@ echo "Activate mempools!"
 
 # activate mempools
 for i in `seq 1 $N`; do
-	curl $(docker-machine ip ${MACH_PREFIX}$i):46657/test_start_mempool &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/test_start_mempool > /dev/null &
 done
 
 echo "Wait for mempools to clear"
@@ -82,7 +82,7 @@ do
 done
 
 # stop the nodes
-mintnet stop --machines "$MACH_PREFIX[1-${N}]"
+mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- stop bench_app_tmnode
 
 # grab their cswals so we can get commit times
 mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- cp bench_app_tmnode:/data/tendermint/core/data/cswal cswal

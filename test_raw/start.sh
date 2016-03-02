@@ -26,11 +26,14 @@ log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 
 block_size=$BLOCKSIZE
+timeout_propose=10 # we assume for testing everyone is online and the network is co-operative ...
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state
 mempool_reap=false # don't reap txs into blocks until we're all synced 
 mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=true # don't write block part messages
+p2p_send_rate=5120000 # 5 MB/s
+p2p_recv_rate=5120000 # 5 MB/s
 EOL
 
 # copy the config file into every dir
@@ -49,7 +52,6 @@ cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
 go install ./cmd/tendermint
-
 
 go get github.com/tendermint/network_testing/mintbench
 mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" --preload_txs="$N_TXS"

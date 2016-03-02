@@ -8,15 +8,17 @@ Some utilities for putting up tendermint test nets and benchmarking throughput a
 
 Runs through all the below.
 
+eg. `./experiment.sh multi 4 10000 250 100000 bench results`
+
 # create machines
 
-`./launch.sh <machine prefix> <"single" | "multi"> <start N> <end N> <region>`
+`./utils/launch.sh <machine prefix> <"single" | "multi"> <start N> <end N> <region>`
 
 Note `<region>` is only used if the second argument is "single"
 
 # start service
 
-`./start.sh <machine prefix> <node data dir> <N>`
+`./test_rpc/start.sh <machine prefix> <node data dir> <N>`
 
 Will initialize the data in `<node data dir>`, copy the data to the nodes, and start the container/s.
 

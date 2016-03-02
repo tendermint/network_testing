@@ -37,6 +37,34 @@ fi
 NODE_DIRS=${MACH_PREFIX}_data
 bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE $N_TXS $RESULTS
 
+echo "All nodes started. Waiting for a block"
+
+# wait for a block
+DONE=false
+while [[ "$DONE" != "true" ]]
+do
+	n=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
+	if [[ "$n" != "0" ]]; then
+		DONE=true
+		echo "Block height $n"
+	fi
+	sleep 1
+done
+
+echo "Wait a few seconds for vals to sync up"
+
+# wait a few seconds for all vals to sync
+sleep 5
+
+echo "Activate mempools!"
+
+# activate mempools
+for i in `seq 1 $N`; do
+	curl $(docker-machine ip ${MACH_PREFIX}$i):46657/test_start_mempool &
+done
+
+echo "Wait for mempools to clear"
+
 #wait to clear all txs
 DONE=false
 while [[ "$DONE" != "true" ]]

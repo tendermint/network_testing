@@ -18,8 +18,9 @@ cat > $NODE_DIRS/chain_config.toml << EOL
 proxy_app = "nilapp"
 moniker = "anonymous"
 node_laddr = "0.0.0.0:46656"
+skip_upnp=true
 seeds = ""
-fast_sync = false
+fast_sync = true
 db_backend = "leveldb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
@@ -27,6 +28,8 @@ rpc_laddr = "0.0.0.0:46657"
 block_size=$BLOCKSIZE
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state
+mempool_reap=false # don't reap txs into blocks until we're all synced 
+mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=true # don't write block part messages
 EOL
 
@@ -45,10 +48,11 @@ go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
+go install ./cmd/tendermint
 
 
 go get github.com/tendermint/network_testing/mintbench
-mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="\$PROXYAPP" --preload_txs="\$N_TXS"
+mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" --preload_txs="$N_TXS"
 EOL
 
 # start the nodes

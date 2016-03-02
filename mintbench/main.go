@@ -10,7 +10,6 @@ import (
 
 	. "github.com/tendermint/go-common"
 	cfg "github.com/tendermint/go-config"
-	"github.com/tendermint/go-events"
 	"github.com/tendermint/go-p2p"
 
 	tmcfg "github.com/tendermint/tendermint/config/tendermint"
@@ -115,13 +114,6 @@ func RunNode() {
 		}
 		log.Notice("Done generating txs", "time", time.Since(start))
 	}
-
-	// wait for everyone to sync up
-	// (say a few seconds after the first block)
-	n.EventSwitch().AddListenerForEvent("mintbench", types.EventStringNewBlock(), func(data events.EventData) {
-		time.Sleep(time.Second * 5)
-		config.Set("mempool_reap", true)
-	})
 
 	// Sleep forever and then...
 	TrapSignal(func() {

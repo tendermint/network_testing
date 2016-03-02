@@ -24,7 +24,6 @@ db_backend = "leveldb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 
-preload_txs=$N_TXS
 block_size=$BLOCKSIZE
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state
@@ -46,9 +45,10 @@ go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
-make install
 
-tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="\$PROXYAPP"
+
+go get github.com/tendermint/network_testing/mintbench
+mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="\$PROXYAPP" --preload_txs="\$N_TXS"
 EOL
 
 # start the nodes

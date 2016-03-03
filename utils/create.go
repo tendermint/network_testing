@@ -13,7 +13,7 @@ func randInt(n int) int {
 	return int(rand.Int31()) % n
 }
 
-var DO_REGIONS = []string{"tor1", "fra1", "sgp1", "lon1", "nyc3", "ams2"}
+var DO_REGIONS = []string{"tor1", "ams2", "sgp1", "lon1", "nyc3", "fra1"}
 var EC2_REGIONS = []string{"us-east-1", "eu-central-1", "us-west-1", "ap-southeast-1", "us-west-2", "eu-west-1", "ap-northeast-1"}
 
 func main() {

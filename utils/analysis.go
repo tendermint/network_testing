@@ -35,17 +35,22 @@ func (p timeSlice) Swap(i, j int) {
 func main() {
 	args := os.Args[1:]
 	if len(args) < 5 {
-		fmt.Println("transact.go expects five args (datadir, nVals, nTxs, start block, end block)")
+		fmt.Println("transact.go expects five args (datadir, nVals, nTxsCommited, nTxsExpected, start block, end block)")
 		os.Exit(1)
 	}
 
-	dataDir, nValsString, nTxsString, startHeightString, endHeightString := args[0], args[1], args[2], args[3], args[4]
+	dataDir, nValsString, nTxsCommittedString, nTxsExpectedString, startHeightString, endHeightString := args[0], args[1], args[2], args[3], args[4], args[5]
 	nVals, err := strconv.Atoi(nValsString)
 	if err != nil {
 		fmt.Println("nVals must be an integer:", err)
 		os.Exit(1)
 	}
-	nTxs, err := strconv.Atoi(nTxsString)
+	nTxsCommitted, err := strconv.Atoi(nTxsCommittedString)
+	if err != nil {
+		fmt.Println("nTxs must be an integer:", err)
+		os.Exit(1)
+	}
+	nTxsExpected, err := strconv.Atoi(nTxsExpectedString)
 	if err != nil {
 		fmt.Println("nTxs must be an integer:", err)
 		os.Exit(1)
@@ -116,7 +121,9 @@ func main() {
 	}
 
 	latency := float64(latencyCum) / float64(endHeight-startHeight)
-	throughput := float64(nTxs) / (float64(latencyCum) / float64(billion))
+	throughput := float64(nTxsCommitted) / (float64(latencyCum) / float64(billion))
+	fractionCommitted := float64(nTxsCommitted) / float64(nTxsExpected)
 	fmt.Println("Mean latency", latency/float64(billion))
 	fmt.Println("Throughput", throughput)
+	fmt.Println("Fraction committed:", fractionCommitted)
 }

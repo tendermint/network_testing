@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strconv"
 
 	dbm "github.com/tendermint/go-db"
 	bc "github.com/tendermint/tendermint/blockchain"
@@ -13,17 +12,12 @@ import (
 func main() {
 
 	args := os.Args[1:]
-	if len(args) < 2 {
-		fmt.Println("block_nums.go requires two arguments: blockchain_dir, n_txs")
+	if len(args) < 1 {
+		fmt.Println("block_nums.go requires one argument: blockchain_dir")
 		os.Exit(1)
 	}
 
-	dataDir, nTxsString := args[0], args[1]
-	nTxs, err := strconv.Atoi(nTxsString)
-	if err != nil {
-		fmt.Println("nTxs must be an integer:", err)
-		os.Exit(1)
-	}
+	dataDir := args[0]
 
 	blockStoreDB, err := dbm.NewLevelDB(path.Join(dataDir, "blockstore.db"))
 	if err != nil {
@@ -34,18 +28,17 @@ func main() {
 	blockStore := bc.NewBlockStore(blockStoreDB)
 	height := blockStore.Height()
 
-	var startN, endN int
+	var firstBlockWithTxs, lastBlockWithTxs int
 	var counter int
 	for i := 1; i <= height; i++ {
 		blockMeta := blockStore.LoadBlockMeta(i)
-		if startN == 0 && blockMeta.Header.NumTxs > 0 {
-			startN = i
+		if blockMeta.Header.NumTxs > 0 {
+			lastBlockWithTxs = i
+			if firstBlockWithTxs == 0 {
+				firstBlockWithTxs = i
+			}
 		}
 		counter += blockMeta.Header.NumTxs
-		if counter >= nTxs {
-			endN = i
-			break
-		}
 	}
-	fmt.Println(startN, endN)
+	fmt.Println(counter, firstBlockWithTxs, lastBlockWithTxs)
 }

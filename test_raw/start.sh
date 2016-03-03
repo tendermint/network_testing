@@ -5,7 +5,6 @@ N=$2
 NODE_DIRS=$3
 BLOCKSIZE=$4
 N_TXS=$5
-RESULTS=$6
 
 # initialize directories
 mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash nil $NODE_DIRS
@@ -26,14 +25,15 @@ log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 
 block_size=$BLOCKSIZE
-timeout_propose=10 # we assume for testing everyone is online and the network is co-operative ...
+timeout_propose=10000 # we assume for testing everyone is online and the network is co-operative ...
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state
 mempool_reap=false # don't reap txs into blocks until we're all synced 
 mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=true # don't write block part messages
-p2p_send_rate=5120000 # 5 MB/s
-p2p_recv_rate=5120000 # 5 MB/s
+p2p_send_rate=51200000 # 5 MB/s
+p2p_recv_rate=51200000 # 5 MB/s
+max_msg_packet_payload_size=65536
 EOL
 
 # copy the config file into every dir
@@ -52,6 +52,8 @@ cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
 go install ./cmd/tendermint
+
+export GO15VENDOREXPERIMENT=1
 
 go get github.com/tendermint/network_testing/mintbench
 mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" --preload_txs="$N_TXS"

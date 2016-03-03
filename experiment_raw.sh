@@ -35,7 +35,7 @@ fi
 
 # create node data and start all nodes
 NODE_DIRS=${MACH_PREFIX}_data
-bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE $N_TXS $RESULTS
+bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE $N_TXS 
 
 echo "All nodes started. Waiting for a block"
 
@@ -84,24 +84,5 @@ done
 # stop the nodes
 mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- stop bench_app_tmnode
 
-# grab their cswals so we can get commit times
-mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- cp bench_app_tmnode:/data/tendermint/core/data/cswal cswal
-for i in `seq 1 $N`; do
-	mkdir -p $RESULTS/$i
-	docker-machine scp ${MACH_PREFIX}$i:cswal $RESULTS/$i/cswal
-done
+bash test_raw/analyis.sh $MACH_PREFIX $N $N_TXS $RESULTS
 
-# grab the chain data for one so we can double check which blocks to use
-docker-machine ssh ${MACH_PREFIX}1 rm -rf tendermint_data # clear any lingering first
-docker-machine ssh ${MACH_PREFIX}1 docker cp bench_app_tmnode:/data/tendermint/core/data tendermint_data
-docker-machine scp -r ${MACH_PREFIX}1:tendermint_data $RESULTS/blockchain
-
-blocks=$(go run utils/block_nums.go $RESULTS/blockchain $N_TXS)
-startHeight=$(echo $blocks | awk '{print $1}')
-endHeight=$(echo $blocks | awk '{print $2}')
-
-echo $blocks
-echo $startHeight
-echo $endHeight
-
-go run utils/analysis.go $RESULTS $N $N_TXS $startHeight $endHeight

@@ -84,7 +84,8 @@ func main() {
 			var msg consensus.ConsensusLogMessage
 			wire.ReadJSON(&msg, []byte(l), &err)
 			if err != nil {
-				fmt.Printf("Error reading json data: %v", err)
+				fmt.Printf("Error reading json data: %v\n", err)
+				fmt.Println(l)
 				os.Exit(1)
 			}
 
@@ -120,10 +121,16 @@ func main() {
 		lastBlockTime = blockTime
 	}
 
-	latency := float64(latencyCum) / float64(endHeight-startHeight)
+	latency := float64(latencyCum) / float64(endHeight-startHeight) / float64(billion)
 	throughput := float64(nTxsCommitted) / (float64(latencyCum) / float64(billion))
 	fractionCommitted := float64(nTxsCommitted) / float64(nTxsExpected)
-	fmt.Println("Mean latency", latency/float64(billion))
+	fmt.Println("Mean latency", latency)
 	fmt.Println("Throughput", throughput)
 	fmt.Println("Fraction committed:", fractionCommitted)
+
+	results := fmt.Sprintf("%f,%f,%f", latency, throughput, fractionCommitted)
+	if err := ioutil.WriteFile(path.Join(dataDir, "final_results"), []byte(results), 0666); err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

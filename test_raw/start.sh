@@ -4,7 +4,6 @@ MACH_PREFIX=$1
 N=$2
 NODE_DIRS=$3
 BLOCKSIZE=$4
-N_TXS=$5
 
 # initialize directories
 mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash nil $NODE_DIRS
@@ -51,12 +50,10 @@ go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
+glide install
 go install ./cmd/tendermint
 
-export GO15VENDOREXPERIMENT=1
-
-go get github.com/tendermint/network_testing/mintbench
-mintbench node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" --preload_txs="$N_TXS"
+tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
 EOL
 
 # start the nodes

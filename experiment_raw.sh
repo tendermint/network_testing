@@ -5,7 +5,7 @@ DATACENTERS=$1 # single or multi
 N=$2 # number of nodes
 BLOCKSIZE=$3 # block size (n txs)
 TXSIZE=$4 # tx size
-N_TXS=$5 # number of transactions
+N_TXS=$5 # number of transactions per validator
 MACH_PREFIX=$6 # machine name prefix
 RESULTS=$7
 
@@ -35,9 +35,13 @@ fi
 
 # create node data and start all nodes
 NODE_DIRS=${MACH_PREFIX}_data
-bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE $N_TXS 
+bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE
 
-echo "All nodes started. Waiting for a block"
+echo "All nodes started. Load up transactions"
+
+go run utils/transact.go $N_TXS $MACH_PREFIX $N
+
+echo "Waiting for a block"
 
 # wait for a block
 DONE=false
@@ -84,5 +88,5 @@ done
 # stop the nodes
 mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- stop bench_app_tmnode
 
-bash test_raw/analyis.sh $MACH_PREFIX $N $N_TXS $RESULTS
+bash test_raw/analysis.sh $MACH_PREFIX $N $N_TXS $RESULTS
 

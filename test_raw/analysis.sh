@@ -15,6 +15,7 @@ docker-machine ssh ${MACH_PREFIX}1 rm -rf tendermint_data # clear any lingering 
 docker-machine ssh ${MACH_PREFIX}1 docker cp bench_app_tmnode:/data/tendermint/core/data tendermint_data
 docker-machine scp -r ${MACH_PREFIX}1:tendermint_data $RESULTS/blockchain
 
+export GO15VENDOREXPERIMENT=0 
 txsAndBlocks=$(go run utils/block_nums.go $RESULTS/blockchain)
 nTxs=$(echo $txsAndBlocks | awk '{print $1}')
 startHeight=$(echo $txsAndBlocks | awk '{print $2}')
@@ -24,4 +25,5 @@ echo $nTxs
 echo $startHeight
 echo $endHeight
 
-GO15VENDOREXPERIMENT=0 go run utils/analysis.go $RESULTS $N $nTxs $N_TXS $startHeight $endHeight
+expectedTxs=$(($N_TXS*N))
+go run utils/analysis.go $RESULTS $N $nTxs $expectedTxs $startHeight $endHeight

@@ -39,6 +39,7 @@ bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE
 
 echo "All nodes started. Load up transactions"
 
+export GO15VENDOREXPERIMENT=0 
 go run utils/transact.go $N_TXS $MACH_PREFIX $N
 
 echo "Waiting for a block"
@@ -64,7 +65,7 @@ echo "Activate mempools!"
 
 # activate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/test_start_mempool > /dev/null &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"bool\"\&key=\"mempool_reap\"\&value=\"true\" &
 done
 
 echo "Wait for mempools to clear"
@@ -78,6 +79,8 @@ do
 		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
 		if [[ "$n" == "0" ]]; then
 			done_cum=$((done_cum+1))
+		else
+			echo "val $i still has $n txs in mempool"
 		fi
 	done
 	if [[ "$done_cum" == "$N" ]]; then

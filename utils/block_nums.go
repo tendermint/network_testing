@@ -27,7 +27,6 @@ func main() {
 
 	blockStore := bc.NewBlockStore(blockStoreDB)
 	height := blockStore.Height()
-
 	var firstBlockWithTxs, lastBlockWithTxs int
 	var counter int
 	for i := 1; i <= height; i++ {

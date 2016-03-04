@@ -19,7 +19,7 @@ for valsetsize in "${VALSETSIZES[@]}"; do
 	  	fi
 		mkdir -p $resultsDir
 		echo "Running experiment: $resultsDir"
-		bash experiment_raw.sh multi $valsetsize $blocksize $TX_SIZE $ntxs $MACH_PREFIX $resultsDir > $resultsDir/experiment.log
+		bash test_raw/experiment_raw.sh multi $valsetsize $blocksize $TX_SIZE $ntxs $MACH_PREFIX $resultsDir > $resultsDir/experiment.log
 		bash utils/rm.sh $MACH_PREFIX $valsetsize
 	done
 done

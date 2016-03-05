@@ -1,6 +1,14 @@
 #! /bin/bash
 # eg. `./setup.sh single 8 10000 250 1000000 mach results/single/8`
 
+function ifExit(){
+	ecode=$?
+	if [[ "$ecode" != "0" ]]; then
+		echo "$ecode : $1"
+		exit 1
+	fi
+}
+
 DATACENTERS=$1 # single or multi
 N=$2 # number of nodes
 BLOCKSIZE=$3 # block size (n txs)
@@ -22,10 +30,7 @@ n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
 if (("$n" < "$N")); then
 	# launch the nodes
 	bash utils/launch.sh $MACH_PREFIX $DATACENTERS $(($n+1)) $N
-	if [[ $? != 0 ]]; then
-		echo "launch failed"
-		exit 1
-	fi
+	ifExit "launch failed"
 fi
 n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
 if (("$n" < "$N")); then
@@ -35,12 +40,14 @@ fi
 
 # create node data and start all nodes
 NODE_DIRS=${MACH_PREFIX}_data
-bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $BLOCKSIZE
+bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS 
+ifExit "failed to start tendermint"
 
 echo "All nodes started. Load up transactions"
 
 export GO15VENDOREXPERIMENT=0 
 go run utils/transact.go $N_TXS $MACH_PREFIX $N
+ifExit "failed to send transactions"
 
 echo "Waiting for a block"
 
@@ -61,11 +68,20 @@ echo "Wait a few seconds for vals to sync up"
 # wait a few seconds for all vals to sync
 sleep 5
 
-echo "Activate mempools!"
+# ensure everyone got all the txs
+for i in `seq 1 $N`; do
+	n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
+	if [[ "$n" != "$N_TXS" ]]; then
+		echo "Val $i only has $n txs in its mempool. Expected $N_TXS"
+	fi
+done
+
+
+echo "Activate mempools by increasing block_size to $BLOCKSIZE!"
 
 # activate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"bool\"\&key=\"mempool_reap\"\&value=\"true\" &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
 done
 
 echo "Wait for mempools to clear"

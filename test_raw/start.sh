@@ -3,7 +3,6 @@
 MACH_PREFIX=$1
 N=$2
 NODE_DIRS=$3
-BLOCKSIZE=$4
 
 # initialize directories
 mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash nil $NODE_DIRS
@@ -23,7 +22,7 @@ db_backend = "leveldb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 
-block_size=$BLOCKSIZE
+block_size=-1 # start at -1 so mempool doesn't empty
 timeout_propose=10000 # we assume for testing everyone is online and the network is co-operative ...
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state

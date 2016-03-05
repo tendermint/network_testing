@@ -79,12 +79,16 @@ func main() {
 		blockN := 0
 		lines := strings.Split(string(b), "\n")
 	INNER:
-		for _, l := range lines {
+		for lineNum, l := range lines {
+			if len(l) <= 1 {
+				fmt.Printf("WARN: cswal (val%d) with empty line (%d)\n", i, lineNum)
+				continue
+			}
 			var err error
 			var msg consensus.ConsensusLogMessage
 			wire.ReadJSON(&msg, []byte(l), &err)
 			if err != nil {
-				fmt.Printf("Error reading json data: %v\n", err)
+				fmt.Printf("Error reading json data from cswal for val %d (1-based index) on line %d: %v\n", i, lineNum, err)
 				fmt.Println(l)
 				os.Exit(1)
 			}

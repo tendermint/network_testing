@@ -19,7 +19,7 @@ for i in `seq 1 $N`; do
 	docker-machine ip $mach > $RESULTS/$i/ip
 
 	docker-machine scp $mach:cswal $RESULTS/$i/cswal
-	docker-machine ssh $mach docker logs bench_app_tmnode > $RESULTS/$i/tendermint.log
+	docker-machine ssh $mach docker logs bench_app_tmnode &> $RESULTS/$i/tendermint.log
 	curl -s $(docker-machine ip $mach):46657/status | jq .result[1] > $RESULTS/$i/status	
 	curl -s $(docker-machine ip $mach):46657/net_info | jq .result[1] > $RESULTS/$i/net_info
 	curl -s $(docker-machine ip $mach):46657/dump_consensus_state| jq .result[1] > $RESULTS/$i/consensus_state	

@@ -40,8 +40,10 @@ for i in `seq 1 $N`; do
 done
 
 # overwrite the init file so we can pick tendermint branch
+# and overwrite the main.go file with one that will fire txs
 cat > $NODE_DIRS/core/init.sh << EOL
 #! /bin/bash
+
 TMREPO="github.com/tendermint/tendermint"
 BRANCH="params"
 
@@ -52,7 +54,12 @@ git checkout \$BRANCH
 glide install
 go install ./cmd/tendermint
 
-tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
+# fetch this repo for the altered main.go file (preloads txs)
+git clone https://github.com/tendermint/network_testing ./network_testing
+cp ./network_testing/tendermint/main.go ./cmd/tendermint/main.go
+go build -o $GOPATH/bin/mintbench ./cmd/tendermint
+
+mintbench $N_TXS --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
 EOL
 
 # start the nodes

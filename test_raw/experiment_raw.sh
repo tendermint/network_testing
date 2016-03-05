@@ -40,42 +40,52 @@ fi
 
 # create node data and start all nodes
 NODE_DIRS=${MACH_PREFIX}_data
-bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS 
+bash test_raw/start.sh $MACH_PREFIX $N $NODE_DIRS $N_TXS
 ifExit "failed to start tendermint"
 
-echo "All nodes started. Load up transactions"
+echo "All nodes started"
 
 export GO15VENDOREXPERIMENT=0 
-go run utils/transact.go $N_TXS $MACH_PREFIX $N
-ifExit "failed to send transactions"
+#go run utils/transact.go $N_TXS $MACH_PREFIX $N
+#ifExit "failed to send transactions"
 
-echo "Waiting for a block"
+echo "Wait for transactions to load"
+done_cum=0
+for t in `seq 1 100`; do
+	for i in `seq 1 $N`; do
+		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
+		if [[ "$n" == "$N_TXS" ]]; then
+			done_cum=$((done_cum+1))
+		else
+			echo "val $i only has $n txs in mempool"
+		fi
+	done
+	if [[ "$done_cum" == "$N" ]]; then
+		break
+	fi
+	sleep 1
+done
+if [[ "$done_cum" != "$N" ]]; then
+	echo "transactions took too long to load!"
+	exit 1
+fi
+echo "All transactions loaded. Waiting for a block."
 
 # wait for a block
-DONE=false
-while [[ "$DONE" != "true" ]]
-do
-	n=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
-	if [[ "$n" != "0" ]]; then
-		DONE=true
+while true; do
+	blockheight=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
+	if [[ "$blockheight" != "0" ]]; then
 		echo "Block height $n"
+		break
 	fi
 	sleep 1
 done
 
-echo "Wait a few seconds for vals to sync up"
-
 # wait a few seconds for all vals to sync
+echo "Wait a few seconds to let validators sync"
 sleep 5
 
-# ensure everyone got all the txs
-for i in `seq 1 $N`; do
-	n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
-	if [[ "$n" != "$N_TXS" ]]; then
-		echo "Val $i only has $n txs in its mempool. Expected $N_TXS"
-	fi
-done
-
+# TODO: ensure they're all at some height (?)
 
 echo "Activate mempools by increasing block_size to $BLOCKSIZE!"
 
@@ -103,9 +113,7 @@ do
 		DONE=true
 	fi
 done
-
-# stop the nodes
-mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- stop bench_app_tmnode
+echo "All mempools cleared"
 
 bash test_raw/analysis.sh $MACH_PREFIX $N $N_TXS $RESULTS
 

@@ -3,8 +3,18 @@ N=$2
 N_TXS=$3
 RESULTS=$4
 
-## grab their cswals so we can get commit times
-## we also grab some extra info in case we need forensics
+# grab stuff that needs the nodes online first, for forensics
+for i in `seq 1 $N`; do
+	mkdir -p $RESULTS/$i
+	mach=${MACH_PREFIX}$i
+	curl -s $(docker-machine ip $mach):46657/status | jq .result[1] > $RESULTS/$i/status	
+	curl -s $(docker-machine ip $mach):46657/net_info | jq .result[1] > $RESULTS/$i/net_info
+	curl -s $(docker-machine ip $mach):46657/dump_consensus_state| jq .result[1] > $RESULTS/$i/consensus_state	
+done
+
+mintnet stop --machines "$MACH_PREFIX[1-${N}]" bench_app
+
+## grab their cswals so we can get commit times, and the logs for forensics
 mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- cp bench_app_tmnode:/data/tendermint/core/data/cswal cswal
 for i in `seq 1 $N`; do
 	mkdir -p $RESULTS/$i
@@ -14,9 +24,6 @@ for i in `seq 1 $N`; do
 	docker-machine inspect $mach | jq .Driver.Region > $RESULTS/$i/region
 	docker-machine ip $mach > $RESULTS/$i/ip
 	docker-machine ssh $mach docker logs bench_app_tmnode &> $RESULTS/$i/tendermint.log
-	curl -s $(docker-machine ip $mach):46657/status | jq .result[1] > $RESULTS/$i/status	
-	curl -s $(docker-machine ip $mach):46657/net_info | jq .result[1] > $RESULTS/$i/net_info
-	curl -s $(docker-machine ip $mach):46657/dump_consensus_state| jq .result[1] > $RESULTS/$i/consensus_state	
 done
 
 # copy in the init data (genesis, scripts, priv vals)

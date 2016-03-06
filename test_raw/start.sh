@@ -45,7 +45,7 @@ cat > $NODE_DIRS/core/init.sh << EOL
 #! /bin/bash
 
 TMREPO="github.com/tendermint/tendermint"
-BRANCH="params"
+BRANCH="params_dev"
 
 go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO

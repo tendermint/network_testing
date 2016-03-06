@@ -53,7 +53,7 @@ echo "Wait for transactions to load"
 done_cum=0
 for t in `seq 1 100`; do
 	for i in `seq 1 $N`; do
-		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
+		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/num_unconfirmed_txs | jq .result[1].n_txs`
 		if [[ "$n" == "$N_TXS" ]]; then
 			done_cum=$((done_cum+1))
 		else
@@ -75,7 +75,7 @@ echo "All transactions loaded. Waiting for a block."
 while true; do
 	blockheight=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
 	if [[ "$blockheight" != "0" ]]; then
-		echo "Block height $n"
+		echo "Block height $blockheight"
 		break
 	fi
 	sleep 1
@@ -102,7 +102,7 @@ while [[ "$DONE" != "true" ]]
 do
 	done_cum=0
 	for i in `seq 1 $N`; do
-		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unconfirmed_txs | jq .result[1].n_txs`
+		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/num_unconfirmed_txs | jq .result[1].n_txs`
 		if [[ "$n" == "0" ]]; then
 			done_cum=$((done_cum+1))
 		else

@@ -26,6 +26,17 @@ for i in `seq 1 $N`; do
 	docker-machine ssh $mach docker logs bench_app_tmnode &> $RESULTS/$i/tendermint.log
 done
 
+
+if [[ "$NET_TEST_CPU_PROF" != "" ]]; then
+	#grab the cpu profs
+	mintnet docker --machines "$MACH_PREFIX[1-${N}]" -- cp bench_app_tmnode:$NET_TEST_CPU_PROF tendermint.prof
+	for i in `seq 1 $N`; do
+		mkdir -p $RESULTS/$i
+		mach=${MACH_PREFIX}$i
+		docker-machine scp $mach:tendermint.prof $RESULTS/$i/tendermint.prof
+	done
+fi
+
 # copy in the init data (genesis, scripts, priv vals)
 cp -r ${MACH_PREFIX}_data $RESULTS/init_data
 

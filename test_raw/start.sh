@@ -22,6 +22,7 @@ fast_sync = true
 db_backend = "leveldb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
+prof_laddr = "" 
 
 block_size=-1 # start at -1 so mempool doesn't empty
 timeout_propose=10000 # we assume for testing everyone is online and the network is co-operative ...
@@ -32,6 +33,8 @@ cswal_light=true # don't write block part messages
 p2p_send_rate=51200000 # 50 MB/s
 p2p_recv_rate=51200000 # 50 MB/s
 max_msg_packet_payload_size=65536
+disable_data_hash=true
+p2p_authenticated_encryption=false
 EOL
 
 # copy the config file into every dir
@@ -45,13 +48,13 @@ cat > $NODE_DIRS/core/init.sh << EOL
 #! /bin/bash
 
 TMREPO="github.com/tendermint/tendermint"
-BRANCH="params_dev"
+BRANCH="develop"
 
 go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
-glide install
+#glide install
 
 # fetch this repo for the altered main.go file (preloads txs)
 git clone https://github.com/tendermint/network_testing ./network_testing

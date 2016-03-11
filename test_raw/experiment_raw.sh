@@ -87,6 +87,14 @@ sleep 5
 
 # TODO: ensure they're all at some height (?)
 
+#export NET_TEST_CPU_PROF=/data/tendermint/core/tendermint.prof
+if [[ "$NET_TEST_CPU_PROF" != "" ]]; then
+	# start cpu profilers
+	for i in `seq 1 $N`; do
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_start_cpu_profiler?filename=\"$NET_TEST_CPU_PROF\"
+	done
+fi
+
 echo "Activate mempools by increasing block_size to $BLOCKSIZE!"
 
 # activate mempools
@@ -114,6 +122,17 @@ do
 	fi
 done
 echo "All mempools cleared"
+
+
+if [[ "$NET_TEST_CPU_PROF" != "" ]]; then
+	# stop cpu profilers
+	for i in `seq 1 $N`; do
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_stop_cpu_profiler
+	done
+	# we don't do analysis or stop the nodes so we can hop into the container and check the profile
+	exit 0
+fi
+
 
 bash test_raw/analysis.sh $MACH_PREFIX $N $N_TXS $RESULTS
 

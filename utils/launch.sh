@@ -18,7 +18,7 @@ echo ""
 if [[ "$DATACENTERS" == "single" ]]; then
 	mintnet create --machine "${MACH_PREFIX}[${START_N}-${END_N}]" -- --driver=digitalocean --digitalocean-access-token $DO_TOKEN  --digitalocean-region "$REGION"
 elif [[ "$DATACENTERS" == "multi" ]]; then
-	go run utils/create.go digitalocean $MACH_PREFIX $START_N $END_N
+	go run utils/create.go amazonec2 $MACH_PREFIX $START_N $END_N
 else
 	echo "DATACENTERS argument must be 'single' or 'multi'. Got $DATACENTERS"
 	exit 1

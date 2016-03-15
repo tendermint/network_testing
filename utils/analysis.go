@@ -66,10 +66,12 @@ func main() {
 		os.Exit(1)
 	}
 
+	fmt.Printf("Grabbing block times for %d validators ... \n", nVals)
 	// list of times for each validator, for each block
 	nBlocks := endHeight - startHeight + 1
 	valBlockTimes := make([][]time.Time, nBlocks)
 	for i := 1; i <= nVals; i++ {
+		fmt.Printf("%d ", i)
 		b, err := ioutil.ReadFile(path.Join(dataDir, fmt.Sprintf("%d", i), "cswal"))
 		if err != nil {
 			fmt.Println("error reading cswal", err)
@@ -78,6 +80,7 @@ func main() {
 
 		blockN := 0
 		lines := strings.Split(string(b), "\n")
+		fmt.Println("Blocktimes:")
 	INNER:
 		for lineNum, l := range lines {
 			if len(l) <= 1 {
@@ -103,27 +106,34 @@ func main() {
 			} else if m.Height > endHeight {
 				break INNER
 			}
+			fmt.Println(msg.Time)
 			valBlockTimes[blockN] = append(valBlockTimes[blockN], msg.Time)
 			blockN += 1
 		}
+		fmt.Println("")
 	}
+	fmt.Printf("\n")
 
 	twoThirdth := nVals * 2 / 3 // plus one but this is used as an index into a slice
 
+	fmt.Printf("Sorting %d block times ... \n", nBlocks)
 	var latencyCum time.Duration
 	var lastBlockTime time.Time
 	// now loop through blocks, sort times across validators, grab 2/3th val as official time
 	for i := 0; i < nBlocks; i++ {
+		fmt.Printf("%d ", i)
 		sort.Sort(timeSlice(valBlockTimes[i]))
 		blockTime := valBlockTimes[i][twoThirdth]
 		if i == 0 {
 			lastBlockTime = blockTime
 			continue
 		}
+
 		diff := blockTime.Sub(lastBlockTime)
 		latencyCum += diff
 		lastBlockTime = blockTime
 	}
+	fmt.Printf("\n\n")
 
 	latency := float64(latencyCum) / float64(endHeight-startHeight) / float64(billion)
 	throughput := float64(nTxsCommitted) / (float64(latencyCum) / float64(billion))

@@ -5,8 +5,8 @@ RESULTS=$2
 
 TX_SIZE=250
 
-BLOCKSIZES=(100 200 500 1000 2000 5000 10000)
-VALSETSIZES=(4 8 16) #32) #64 128 256 512 1024)
+BLOCKSIZES=(128 256 512 1024 2048 4096 8192 16384 32768 65536)
+VALSETSIZES=(4 8 16 32 64) #128 256 512 1024)
 
 for valsetsize in "${VALSETSIZES[@]}"; do
 	for blocksize in "${BLOCKSIZES[@]}"; do
@@ -27,3 +27,16 @@ for valsetsize in "${VALSETSIZES[@]}"; do
 		bash utils/rm.sh $MACH_PREFIX $valsetsize
 	done
 done
+
+
+mkdir $RESULTS/final_results
+
+for valsetsize in "${VALSETSIZES[@]}"; do
+	for blocksize in "${BLOCKSIZES[@]}"; do
+		resultsDir=blocksize_${blocksize}/nvals_${valsetsize}
+		finalDir=$RESULTS/final_results/$resultsDir
+		mkdir -p $finalDir
+		cp $RESULTS/$resultsDir/final_results $finalDir/final_results
+	done
+done
+

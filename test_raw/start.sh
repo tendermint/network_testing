@@ -19,7 +19,7 @@ node_laddr = "0.0.0.0:46656"
 skip_upnp=true
 seeds = ""
 fast_sync = true
-db_backend = "leveldb"
+db_backend = "memdb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
@@ -32,9 +32,8 @@ mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=true # don't write block part messages
 p2p_send_rate=51200000 # 50 MB/s
 p2p_recv_rate=51200000 # 50 MB/s
-max_msg_packet_payload_size=65536
+max_msg_packet_payload_size=131072
 disable_data_hash=true
-p2p_authenticated_encryption=false
 EOL
 
 # copy the config file into every dir
@@ -44,6 +43,7 @@ done
 
 # overwrite the init file so we can pick tendermint branch
 # and overwrite the main.go file with one that will fire txs
+if [[ "$TM_IMAGE" == "" ]]; then
 cat > $NODE_DIRS/core/init.sh << EOL
 #! /bin/bash
 
@@ -54,7 +54,7 @@ go get -d \$TMREPO/cmd/tendermint
 cd \$GOPATH/src/\$TMREPO
 git fetch origin \$BRANCH
 git checkout \$BRANCH
-#glide install
+glide install
 
 # fetch this repo for the altered main.go file (preloads txs)
 git clone https://github.com/tendermint/network_testing ./network_testing
@@ -67,5 +67,17 @@ go install ./cmd/tendermint
 mintbench node $N_TXS --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
 EOL
 
+TM_IMAGE="tendermint/tmbase"
+
+else
+
+cat > $NODE_DIRS/core/init.sh << EOL
+#! /bin/bash
+mintbench node $N_TXS --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
+EOL
+
+fi
+
+
 # start the nodes
-mintnet start --machines "$MACH_PREFIX[1-${N}]" --no-tmsp bench_app $NODE_DIRS
+mintnet start --machines "$MACH_PREFIX[1-${N}]" --no-tmsp --tmnode-image $TM_IMAGE bench_app $NODE_DIRS

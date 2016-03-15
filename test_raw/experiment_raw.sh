@@ -70,12 +70,11 @@ if [[ "$done_cum" != "$N" ]]; then
 	exit 1
 fi
 echo "All transactions loaded. Waiting for a block."
-
 # wait for a block
 while true; do
-	blockheight=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
-	if [[ "$blockheight" != "0" ]]; then
-		echo "Block height $blockheight"
+	blockheightStart=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
+	if [[ "$blockheightStart" != "0" ]]; then
+		echo "Block height $blockheightStart"
 		break
 	fi
 	sleep 1
@@ -87,11 +86,12 @@ sleep 5
 
 # TODO: ensure they're all at some height (?)
 
-#export NET_TEST_CPU_PROF=/data/tendermint/core/tendermint.prof
-if [[ "$NET_TEST_CPU_PROF" != "" ]]; then
-	# start cpu profilers
+#export NET_TEST_PROF=/data/tendermint/core/tendermint.prof
+if [[ "$NET_TEST_PROF" != "" ]]; then
+	# start cpu profilers and snap a heap profile
 	for i in `seq 1 $N`; do
-		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_start_cpu_profiler?filename=\"$NET_TEST_CPU_PROF\"
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_start_cpu_profiler?filename=\"$NET_TEST_PROF/cpu.prof\"
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_start.prof\"
 	done
 fi
 
@@ -101,6 +101,12 @@ echo "Activate mempools by increasing block_size to $BLOCKSIZE!"
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
 done
+
+if [[ "$CRASH_FAILURES" != "" ]]; then
+	# start a process that kills and restarts a random node every second
+	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
+	CRASHER_PROC=$!
+fi
 
 echo "Wait for mempools to clear"
 
@@ -123,16 +129,26 @@ do
 done
 echo "All mempools cleared"
 
-
-if [[ "$NET_TEST_CPU_PROF" != "" ]]; then
-	# stop cpu profilers
-	for i in `seq 1 $N`; do
-		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_stop_cpu_profiler
-	done
-	# we don't do analysis or stop the nodes so we can hop into the container and check the profile
-	exit 0
+# stop the crasher
+if [[ "$CRASH_FAILURES" != "" ]]; then
+	# must make sure all nodes are still on!
+	kill -9 $CRASHER_PROC
 fi
 
 
-bash test_raw/analysis.sh $MACH_PREFIX $N $N_TXS $RESULTS
+blockheightEnd=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
+echo "Block $blockheightEnd"
+
+if [[ "$NET_TEST_PROF" != "" ]]; then
+	# stop cpu profilers and snap a heap profile
+	for i in `seq 1 $N`; do
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_stop_cpu_profiler
+		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_end.prof\"
+	done
+	# we don't do analysis or stop the nodes so we can hop into the container and check the profile
+	#	exit 0
+fi
+
+
+bash test_raw/analysis.sh $MACH_PREFIX $N $N_TXS $blockheightStart $blockheightEnd $RESULTS 
 

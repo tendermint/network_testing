@@ -14,7 +14,7 @@ func randInt(n int) int {
 }
 
 var DO_REGIONS = []string{"tor1", "ams2", "sgp1", "lon1", "nyc3", "fra1"}
-var EC2_REGIONS = []string{"us-east-1", "eu-central-1", "us-west-1", "ap-southeast-1", "us-west-2", "eu-west-1", "ap-northeast-1"}
+var EC2_REGIONS = []string{"us-east-1", "eu-central-1", "ap-northeast-1", "ap-southeast-2", "sa-east-1", "us-west-2", "eu-west-1"}
 
 func main() {
 	args := os.Args[1:]
@@ -50,15 +50,15 @@ func createDigitalOceanMachines(prefix string, startN, endN int) {
 	n := endN - startN + 1
 	wg := new(sync.WaitGroup)
 	wg.Add(n)
-	for i := startN; i <= endN; i++ {
+	for i := startN - 1; i < endN; i++ {
 		var region string
 		if i < len(DO_REGIONS) {
 			region = DO_REGIONS[i]
 		} else {
 			region = DO_REGIONS[randInt(len(DO_REGIONS))]
 		}
-		fmt.Printf("###### LAUNCHING MACHINE %d in region %s\n", i, region)
-		go createDigitalOceanMachine(wg, prefix, region, i)
+		fmt.Printf("###### LAUNCHING MACHINE %d in region %s\n", i+1, region)
+		go createDigitalOceanMachine(wg, prefix, region, i+1)
 	}
 	wg.Wait()
 }
@@ -79,15 +79,15 @@ func createAmazonEC2Machines(prefix string, startN, endN int) {
 	n := endN - startN + 1
 	wg := new(sync.WaitGroup)
 	wg.Add(n)
-	for i := startN; i <= endN; i++ {
+	for i := startN - 1; i < endN; i++ {
 		var region string
 		if i < len(EC2_REGIONS) {
 			region = EC2_REGIONS[i]
 		} else {
 			region = EC2_REGIONS[randInt(len(EC2_REGIONS))]
 		}
-		fmt.Printf("###### LAUNCHING MACHINE %d in region %s\n", i, region)
-		go createAmazonEC2Machine(wg, prefix, region, i)
+		fmt.Printf("###### LAUNCHING MACHINE %d in region %s\n", i+1, region)
+		go createAmazonEC2Machine(wg, prefix, region, i+1)
 	}
 	wg.Wait()
 }
@@ -95,11 +95,19 @@ func createAmazonEC2Machines(prefix string, startN, endN int) {
 func createAmazonEC2Machine(wg *sync.WaitGroup, prefix, region string, i int) {
 	cmd := exec.Command("docker-machine", "create", fmt.Sprintf("%s%d", prefix, i),
 		"--driver=amazonec2",
-		"--amazonec2-access-key="+os.Getenv("AWS_ACCESS_KEY_ID"),
-		"--amazonec2-secret-key="+os.Getenv("AWS_SECRET_ACCESS_KEY"),
+		"--amazonec2-access-key="+os.Getenv("AWS_ACCESS_KEY"),
+		"--amazonec2-secret-key="+os.Getenv("AWS_SECRET_KEY"),
 		//"--amazonec2-vpc-id="+os.Getenv("AWS_VPC_ID"),
 		"--amazonec2-security-group="+os.Getenv("AWS_SECURITY_GROUP"),
+		"--amazonec2-instance-type=t2.medium",
 		"--amazonec2-region="+region)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	cmd.Run()
+
+	// need to add base user to docker group
+	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", prefix, i),
+		"sudo", "usermod", "-aG", "docker", "ubuntu")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

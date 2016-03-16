@@ -18,7 +18,7 @@ moniker = "anonymous"
 node_laddr = "0.0.0.0:46656"
 skip_upnp=true
 seeds = ""
-fast_sync = true
+fast_sync = false
 db_backend = "memdb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
@@ -41,43 +41,15 @@ for i in `seq 1 $N`; do
 		cp $NODE_DIRS/chain_config.toml $NODE_DIRS/${MACH_PREFIX}$i/core/config.toml
 done
 
-# overwrite the init file so we can pick tendermint branch
-# and overwrite the main.go file with one that will fire txs
+# overwrite the mintnet core init file (so we can pick tendermint branch)
+cp experiments/init.sh $NODE_DIRS/core/init.sh
 if [[ "$TM_IMAGE" == "" ]]; then
-cat > $NODE_DIRS/core/init.sh << EOL
-#! /bin/bash
-
-TMREPO="github.com/tendermint/tendermint"
-BRANCH="develop"
-
-go get -d \$TMREPO/cmd/tendermint
-cd \$GOPATH/src/\$TMREPO
-git fetch origin \$BRANCH
-git checkout \$BRANCH
-glide install
-
-# fetch this repo for the altered main.go file (preloads txs)
-git clone https://github.com/tendermint/network_testing ./network_testing
-cp -r ./cmd/tendermint ./cmd/mintbench
-cp ./network_testing/tendermint/main.go ./cmd/mintbench/main.go
-
-go install ./cmd/mintbench
-go install ./cmd/tendermint
-
-mintbench node $N_TXS --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
-EOL
-
-TM_IMAGE="tendermint/tmbase"
-
+	TM_IMAGE="tendermint/tmbase:dev"
 else
-
-cat > $NODE_DIRS/core/init.sh << EOL
-#! /bin/bash
-mintbench node $N_TXS --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app="nilapp" 
-EOL
-
+	# if we're using an image, just a bare script
+	echo "#! /bin/bash" > $NODE_DIRS/core/init.sh
 fi
-
+echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app=nilapp" >> $NODE_DIRS/core/init.sh
 
 # start the nodes
 mintnet start --machines "$MACH_PREFIX[1-${N}]" --no-tmsp --tmnode-image $TM_IMAGE bench_app $NODE_DIRS

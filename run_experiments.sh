@@ -5,8 +5,8 @@ RESULTS=$2
 
 TX_SIZE=250
 
-BLOCKSIZES=(128 256 512 1024 2048 4096 8192 16384) #32768 65536)
-VALSETSIZES=(4 8 16 32 64) #128 256 512 1024)
+BLOCKSIZES=(128 256 512 1024 2048 4096 8192 16384 32768) #65536)
+VALSETSIZES=(2) #4 8 16 32 64) #128 256 512 1024)
 
 # DATACENTER is "multi" or "single"
 if [[ "$DATACENTER" == "" ]]; then
@@ -14,13 +14,19 @@ if [[ "$DATACENTER" == "" ]]; then
 fi
 
 for valsetsize in "${VALSETSIZES[@]}"; do
+	SKIPPED_ALL=true
 	for blocksize in "${BLOCKSIZES[@]}"; do
-		ntxs=$(($blocksize*4))
+		if [[ "$valsetsize" == 2 ]]; then
+			ntxs=$(($blocksize*8)) # load this many txs on each validator
+		else
+			ntxs=$(($blocksize*4)) # load this many txs on each validator
+		fi
 		resultsDir=$RESULTS/blocksize_${blocksize}/nvals_${valsetsize}
 		if [ -d "$resultsDir" ]; then
 			# no need to rerun experiments
 			continue
 	  	fi
+		SKIPPED_ALL=false
 		mkdir -p $resultsDir
 		echo "Running experiment: $resultsDir"
 		bash experiments/run.sh $DATACENTER $valsetsize $blocksize $TX_SIZE $ntxs $MACH_PREFIX $resultsDir > $resultsDir/experiment.log
@@ -30,6 +36,10 @@ for valsetsize in "${VALSETSIZES[@]}"; do
 			exit 1
 		fi
 	done
+	if [[ "$SKIPPED_ALL" == "true" ]]; then
+		continue
+	fi
+	# only clear the nodes if we're changing from one valset size to another
 	bash utils/rm.sh $MACH_PREFIX $valsetsize
 done
 

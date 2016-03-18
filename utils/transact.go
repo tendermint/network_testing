@@ -100,7 +100,7 @@ func machIP(machPrefix string, n int) string {
 }
 
 func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost string, nTxs int, machPrefix string, txCount int) {
-	thisStart := time.Now()
+	// thisStart := time.Now()
 	// cli := rpcclient.NewClientURI(valHost + ":46657")
 	cli := rpcclient.NewWSClient(valHost, "/websocket")
 	if _, err := cli.Start(); err != nil {
@@ -110,6 +110,7 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 
 	reconnect := make(chan struct{})
 	go func(count int) {
+		ticker := time.NewTicker(time.Second * 2)
 	LOOP:
 		for {
 			select {
@@ -121,9 +122,13 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 			case err := <-cli.ErrorsCh:
 				fmt.Println("err: val", valI, valHost, err)
 			case <-cli.Quit:
+				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count)
+				return
 			case <-reconnect:
 				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count)
 				return
+			case <-ticker.C:
+				// reconnect?
 			}
 		}
 		fmt.Printf("Received all responses from %s%d (%s)\n", machPrefix, valI, valHost)
@@ -132,9 +137,9 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 	// params := map[string]interface{}{}
 	// var result ctypes.TMResult
 	for i := txCount; i < nTxs; i++ {
-		if i%(nTxs/4) == 0 {
-			fmt.Printf("Have sent %d txs to %s%d. Total time so far: %v\n", i, machPrefix, valI, time.Since(thisStart))
-		}
+		/*		if i%(nTxs/4) == 0 {
+				fmt.Printf("Have sent %d txs to %s%d. Total time so far: %v\n", i, machPrefix, valI, time.Since(thisStart))
+			}*/
 		// a tx encodes the validator index, the tx number, and some random junk
 		tx := make([]byte, 250)
 		binary.PutUvarint(tx[:32], uint64(valI))

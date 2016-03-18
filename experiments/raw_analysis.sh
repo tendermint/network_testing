@@ -62,6 +62,7 @@ cp -r ${MACH_PREFIX}_data $RESULTS/init_data
 #	\&\& tar -czvf tendermint_data.tar.gz tendermint_data
 #docker-machine scp -r ${MACH_PREFIX}1:tendermint_data.tar.gz $RESULTS/blockchain.tar.gz && tar -xzvf $RESULTS/blockchain.tar.gz -C $RESULTS/ && mv $RESULTS/tendermint_data $RESULTS/blockchain
 
+// TODO: deal with new N_TX total mechanisms...
 expectedTxs=$(($N_TXS*N))
 echo $expectedTxs
 go run utils/analysis.go $RESULTS $N $nTxs $expectedTxs $startHeight $endHeight

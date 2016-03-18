@@ -45,20 +45,23 @@ if [[ ! -d "$NODE_DIRS" ]]; then
 	ifExit "failed to start tendermint"
 
 else
-	# if node data already exists, just restart chains
-	echo "Restarting nodes."
-	mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmnode \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmnode
+	# if node data already exists, do nothing
+	echo "Nodes already started"
+
+	# echo "Restarting nodes."
+	# mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmnode \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmnode
 fi
-
-# start the tx player on each node
-go run utils/transact_concurrent.go $MACH_PREFIX $N $N_TXS
-
-echo "All nodes started"
 
 # deactivate mempools
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" > /dev/null &
 done
+
+
+# start the tx player on each node
+go run utils/transact_concurrent.go $MACH_PREFIX $N $N_TXS
+
+echo "All nodes started"
 
 export GO15VENDOREXPERIMENT=0 
 #go run utils/transact.go $N_TXS $MACH_PREFIX $N
@@ -66,7 +69,7 @@ export GO15VENDOREXPERIMENT=0
 
 # TODO: ensure they're all at some height (?)
 
-#export NET_TEST_PROF=/data/tendermint/core/tendermint.prof
+#export NET_TEST_PROF=/data/tendermint/core
 if [[ "$NET_TEST_PROF" != "" ]]; then
 	# start cpu profilers and snap a heap profile
 	for i in `seq 1 $N`; do
@@ -86,7 +89,7 @@ done_cum=0
 for t in `seq 1 100`; do
 	for i in `seq 1 $N`; do
 		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/num_unconfirmed_txs | jq .result[1].n_txs`
-		if [[ "$n" == "$N_TXS" ]]; then
+		if [[ "$n" -ge "$N_TXS" ]]; then
 			done_cum=$((done_cum+1))
 		else
 			echo "val $i only has $n txs in mempool"
@@ -114,7 +117,7 @@ done
 
 # wait a few seconds for all vals to sync
 echo "Wait a few seconds to let validators sync"
-sleep 5
+sleep 2
 
 
 # activate mempools

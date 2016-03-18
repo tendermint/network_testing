@@ -18,8 +18,8 @@ moniker = "anonymous"
 node_laddr = "0.0.0.0:46656"
 skip_upnp=true
 seeds = ""
-fast_sync = false
-db_backend = "memdb"
+fast_sync = true
+db_backend = "leveldb"
 log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
@@ -33,7 +33,6 @@ cswal_light=true # don't write block part messages
 p2p_send_rate=51200000 # 50 MB/s
 p2p_recv_rate=51200000 # 50 MB/s
 max_msg_packet_payload_size=131072
-disable_data_hash=true
 EOL
 
 # copy the config file into every dir
@@ -44,9 +43,8 @@ done
 # overwrite the mintnet core init file (so we can pick tendermint branch)
 cp experiments/init.sh $NODE_DIRS/core/init.sh
 if [[ "$TM_IMAGE" == "" ]]; then
-	TM_IMAGE="tendermint/tmbase:dev"
-else
 	# if we're using an image, just a bare script
+	TM_IMAGE="tendermint/tmbase:dev"
 	echo "#! /bin/bash" > $NODE_DIRS/core/init.sh
 fi
 echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app=nilapp" >> $NODE_DIRS/core/init.sh

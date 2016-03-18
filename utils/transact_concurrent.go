@@ -45,7 +45,6 @@ func main() {
 	}
 	wg.Wait()
 	fmt.Println("Done starting transactor on all nodes. Took", time.Since(start))
-
 }
 
 func machIP(machPrefix string, n int) string {

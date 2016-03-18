@@ -19,7 +19,12 @@ netmon chains-and-vals chain mon.json $NODE_DIRS
 
 # start the netmon in bench mode 
 mkdir -p $RESULTS
-netmon bench mon.json $RESULTS $(($N_TXS*$N)) # 
+if [[ "$N" == "2" ]]; then
+	TOTAL_TXS=$(($N_TXS*2))	
+else
+	TOTAL_TXS=$(($N_TXS*4)) # N_TXS should be blocksize*4. So tests should run for 16 blocks
+fi
+netmon bench mon.json $RESULTS $TOTAL_TXS
 
 # once the txs all get committed, the netmon process will finish.
 # locally timestamped blocks get spat to stdout, and a results summary gets written to file

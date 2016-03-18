@@ -43,15 +43,8 @@ ENV TMREPO "github.com/tendermint/tendermint"
 ENV BRANCH "develop"
 
 RUN go get -d $TMREPO/cmd/tendermint
-RUN cd $GOPATH/src/$TMREPO && git fetch origin $BRANCH && git checkout $BRANCH && glide install
-
-# fetch this repo for the altered main.go file (preloads txs)
 WORKDIR $GOPATH/src/$TMREPO
-RUN git clone https://github.com/tendermint/network_testing ./network_testing
-RUN cp -r ./cmd/tendermint ./cmd/mintbench
-RUN cp ./network_testing/tendermint/main.go ./cmd/mintbench/main.go
-
-RUN go install ./cmd/mintbench
+RUN git fetch origin $BRANCH && git checkout $BRANCH && glide install
 RUN go install ./cmd/tendermint
 
 # Persist data, set user

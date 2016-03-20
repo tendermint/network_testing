@@ -116,7 +116,8 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 			select {
 			case <-cli.ResultsCh:
 				count += 1
-				if count == nTxs {
+				// nTxs == 0 means just loop forever
+				if nTxs > 0 && count == nTxs {
 					break LOOP
 				}
 			case err := <-cli.ErrorsCh:
@@ -136,7 +137,8 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 	}(txCount)
 	// params := map[string]interface{}{}
 	// var result ctypes.TMResult
-	for i := txCount; i < nTxs; i++ {
+	var i = 0
+	for {
 		/*		if i%(nTxs/4) == 0 {
 				fmt.Printf("Have sent %d txs to %s%d. Total time so far: %v\n", i, machPrefix, valI, time.Since(thisStart))
 			}*/
@@ -164,7 +166,12 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 			reconnect <- struct{}{}
 			return
 		}
-		time.Sleep(time.Microsecond * 1)
+		i += 1
+		if nTxs > 0 && i >= nTxs {
+			break
+		} else if nTxs == 0 {
+			time.Sleep(time.Millisecond * 1)
+		}
 	}
 	fmt.Printf("Done sending %d txs to %s%d (%s)\n", nTxs, machPrefix, valI, valHost)
 }

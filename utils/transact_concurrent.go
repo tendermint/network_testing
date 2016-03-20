@@ -41,7 +41,7 @@ func main() {
 	fmt.Printf("Copying transactor to each host\n")
 	for thisHostI, thisHost := range hosts {
 		hostIndex := thisHostI + 1 // plus one because machine names are 1-based
-		go runTransactor(wg, hostIndex, thisHost, nTxs, machPrefix, 0)
+		go runTransactor(wg, hostIndex, thisHost, nTxs, machPrefix)
 	}
 	wg.Wait()
 	fmt.Println("Done starting transactor on all nodes. Took", time.Since(start))
@@ -57,7 +57,7 @@ func machIP(machPrefix string, n int) string {
 	return strings.TrimSpace(buf.String())
 }
 
-func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machPrefix string, txCount int) {
+func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machPrefix string) {
 	// copy to machine
 	cmd := exec.Command("docker-machine", "scp", "utils/transact.go", fmt.Sprintf("%s%d:transact.go", machPrefix, valI))
 	cmd.Stdout = os.Stdout
@@ -69,7 +69,8 @@ func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machP
 	cmd.Stderr = os.Stderr
 	cmd.Run()
 
-	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "--volumes-from=bench_app_tmcommon", "--link=bench_app_tmnode:tmnode", "tendermint/tmbase:dev", "go", "run", "transact.go", fmt.Sprintf("%d", nTxs), "docker_link")
+	// this one runs in daemon mode!
+	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--volumes-from=bench_app_tmcommon", "--link=bench_app_tmnode:tmnode", "tendermint/tmbase:dev", "go", "run", "transact.go", fmt.Sprintf("%d", nTxs), "docker_link")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

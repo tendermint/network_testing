@@ -24,44 +24,17 @@ echo "Tx size: $TXSIZE"
 echo "Machine prefix: $MACH_PREFIX"
 echo ""
 
-echo "Checking for machines."
-# make sure we have enough nodes
-n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
-if (("$n" < "$N")); then
-	# launch the nodes
-	bash utils/launch.sh $MACH_PREFIX $DATACENTERS $(($n+1)) $N
-	ifExit "launch failed"
-fi
-n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
-if (("$n" < "$N")); then
-	echo "Launched machines but do not have enough for the tests. Did docker-machine fail?"
-	exit 2
-fi
-
-# create node data and start all nodes
 NODE_DIRS=${MACH_PREFIX}_data
-if [[ ! -d "$NODE_DIRS" ]]; then
-	bash experiments/start.sh $MACH_PREFIX $N $NODE_DIRS $N_TXS
-	ifExit "failed to start tendermint"
-
-else
-	# if node data already exists, do nothing
-	echo "Nodes already started"
-
-	# echo "Restarting nodes."
-	# mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmnode \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmnode
-fi
+bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
 
 # deactivate mempools
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" > /dev/null &
 done
 
-
 # start the tx player on each node
 go run utils/transact_concurrent.go $MACH_PREFIX $N $N_TXS
 
-echo "All nodes started"
 
 export GO15VENDOREXPERIMENT=0 
 #go run utils/transact.go $N_TXS $MACH_PREFIX $N
@@ -78,11 +51,6 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 	done
 fi
 
-if [[ "$CRASH_FAILURES" != "" ]]; then
-	# start a process that kills and restarts a random node every second
-	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
-	CRASHER_PROC=$!
-fi
 
 echo "Wait for transactions to load"
 done_cum=0
@@ -105,6 +73,7 @@ if [[ "$done_cum" != "$N" ]]; then
 	exit 1
 fi
 echo "All transactions loaded. Waiting for a block."
+
 # wait for a block
 while true; do
 	blockheightStart=`curl -s $(docker-machine ip ${MACH_PREFIX}1):46657/status | jq .result[1].latest_block_height`
@@ -125,12 +94,24 @@ for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
 done
 
-
-if [[ "$TEST_RAW" != "" ]]; then
-	bash experiments/raw_experiment.sh $MACH_PREFIX $N $N_TXS $BLOCKSIZE $NODE_DIRS $RESULTS
-else
-	bash experiments/rpc_experiment.sh $MACH_PREFIX $N $N_TXS $BLOCKSIZE $NODE_DIRS $RESULTS
+if [[ "$CRASH_FAILURES" != "" ]]; then
+	# start a process that kills and restarts a random node every second
+	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
+	CRASHER_PROC=$!
 fi
+
+# massage the config file
+echo "{}" > mon.json
+netmon chains-and-vals chain mon.json $NODE_DIRS
+
+# start the netmon in bench mode 
+mkdir -p $RESULTS
+if [[ "$N" == "2" ]]; then
+	TOTAL_TXS=$(($N_TXS*2))	
+else
+	TOTAL_TXS=$(($N_TXS*4)) # N_TXS should be blocksize*4. So tests should run for 16 blocks
+fi
+netmon bench --n_txs=$TOTAL_TXS mon.json $RESULTS 
 
 
 if [[ "$NET_TEST_PROF" != "" ]]; then
@@ -139,8 +120,6 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_stop_cpu_profiler
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_end.prof\"
 	done
-	# we don't do analysis or stop the nodes so we can hop into the container and check the profile
-	#	exit 0
 fi
 
 

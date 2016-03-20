@@ -23,8 +23,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	i := rand.Int31n(int32(n))
-	stopAndStart(prefix, i, containerName)
+	for {
+		i := rand.Int31n(int32(n)) + 1 // machines are 1 based
+		stopAndStart(prefix, i, containerName)
+	}
 }
 
 func stopAndStart(prefix string, i int32, containerName string) {
@@ -36,7 +38,7 @@ func stopAndStart(prefix string, i int32, containerName string) {
 	cmd.Run()
 	fmt.Println("done")
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second * 2)
 
 	fmt.Println("Starting node", prefix, i)
 	cmd = exec.Command("docker-machine", "ssh", mach, "docker", "start", containerName)

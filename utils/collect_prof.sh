@@ -1,8 +1,8 @@
 #! /bin/bash
 
-profDir=$1
+mach=$1
+profDir=$2
 
-mach=benchahoy1
 docker-machine ssh $mach docker cp bench_app_tmnode:/go/bin/tendermint tendermint.bin
 docker-machine ssh $mach docker cp bench_app_tmnode:/data/tendermint/core/cpu.prof cpu.prof
 

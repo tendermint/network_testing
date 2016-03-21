@@ -7,12 +7,26 @@ NODE_DIRS=$3
 # initialize directories
 mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash nil $NODE_DIRS
 
+if [[ "$TIMEOUT_PROPOSE" == "" ]]; then
+	TIMEOUT_PROPOSE=3000 # ms
+fi
+if [[ "$BLOCK_SIZE" == "" ]]; then
+	# start at -1 so mempool doesn't empty, set manually with unsafe_config
+	BLOCK_SIZE=-1
+fi
+if [[ "$CSWAL_LIGHT" == "" ]]; then
+	CSWAL_LIGHT=true # don't write block part messages
+fi
+
+# NOTE: if not --no-tmsp, this is overwritten by mintnet ...
+PROXY_APP_ADDR="nilapp" # in process nothingness
+
 # drop the config file
 cat > $NODE_DIRS/chain_config.toml << EOL
 # This is a TOML config file.
 # For more information, see https://github.com/toml-lang/toml
 
-proxy_app = "nilapp"
+proxy_app = "$PROXY_APP_ADDR"
 moniker = "anonymous"
 node_laddr = "0.0.0.0:46656"
 skip_upnp=true
@@ -23,12 +37,12 @@ log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
 
-block_size=-1 # start at -1 so mempool doesn't empty
-timeout_propose=3000 
+block_size=$BLOCK_SIZE
+timeout_propose=$TIMEOUT_PROPOSE
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
 mempool_recheck=false # don't care about app state
 mempool_broadcast=false # don't broadcast mempool txs
-cswal_light=true # don't write block part messages
+cswal_light=$CSWAL_LIGHT
 p2p_send_rate=51200000 # 50 MB/s
 p2p_recv_rate=51200000 # 50 MB/s
 max_msg_packet_payload_size=131072
@@ -48,5 +62,12 @@ if [[ "$TM_IMAGE" == "" ]]; then
 fi
 echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app=nilapp" >> $NODE_DIRS/core/init.sh
 
+tmsp_conditions="--no-tmsp"
+# overwrite the app file
+if [[ "$PROXY_APP_INIT_FILE" != "" ]]; then
+	cp $PROXY_APP_INIT_FILE $NODE_DIRS/app/init.sh
+	tmsp_conditions="" # if we have an app file we're using tmsp
+fi
+
 # start the nodes
-mintnet start --machines "$MACH_PREFIX[1-${N}]" --no-tmsp --tmnode-image $TM_IMAGE bench_app $NODE_DIRS
+mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmnode-image $TM_IMAGE bench_app $NODE_DIRS

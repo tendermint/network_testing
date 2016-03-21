@@ -5,7 +5,8 @@ RESULTS=$2
 
 TX_SIZE=250
 
-VALSETSIZES=(4) #8 16 32 64) #128 256 512 1024)
+VALSETSIZES=(4 8 16 32 64) #128 256 512 1024)
+PROPOSAL_TIMEOUTS=(500 1000 2000 3000)
 
 # DATACENTER is "multi" or "single"
 if [[ "$DATACENTER" == "" ]]; then
@@ -13,23 +14,28 @@ if [[ "$DATACENTER" == "" ]]; then
 fi
 
 blocksize=2048
-nblocks=50
+nblocks=200
+
+# TODO: maybe loop over blocksize too
 
 for valsetsize in "${VALSETSIZES[@]}"; do
-	resultsDir=$RESULTS/blocksize_${blocksize}/nvals_${valsetsize}
-	if [ -d "$resultsDir" ]; then
-		# no need to rerun experiments
-		continue
-	fi
-	mkdir -p $resultsDir
-	echo "Running experiment: $resultsDir"
-	bash experiments/exp_crash.sh $DATACENTER $valsetsize $blocksize $TX_SIZE $nblocks $MACH_PREFIX $resultsDir > $resultsDir/experiment.log
-	if [[ "$?" != 0 ]]; then
-		echo "experiment failed. gathering postmortem"
-		bash utils/post_mortem.sh $MACH_PREFIX $valsetsize $resultsDir/post_mortem
-		exit 1
-	fi
-	bash utils/rm.sh $MACH_PREFIX $valsetsize
+	for PROPOSAL_TIMEOUT in "${PROPOSAL_TIMEOUTS[@]}"; do
+		resultsDir=$RESULTS/blocksize_${blocksize}/nvals_${valsetsize}/timeout_${PROPOSAL_TIMEOUT}
+		if [ -d "$resultsDir" ]; then
+			# no need to rerun experiments
+			continue
+		fi
+		mkdir -p $resultsDir
+		echo "Running experiment: $resultsDir"
+		export PROPOSAL_TIMEOUT=$PROPOSAL_TIMEOUT
+		bash experiments/exp_crash.sh $DATACENTER $valsetsize $blocksize $TX_SIZE $nblocks $MACH_PREFIX $resultsDir &> $resultsDir/experiment.log
+		if [[ "$?" != 0 ]]; then
+			echo "experiment failed. gathering postmortem"
+			bash utils/post_mortem.sh $MACH_PREFIX $valsetsize $resultsDir/post_mortem
+			exit 1
+		fi
+		bash utils/rm.sh $MACH_PREFIX $valsetsize
+	done
 done
 
 

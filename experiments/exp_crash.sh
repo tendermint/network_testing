@@ -10,22 +10,30 @@ function ifExit(){
 
 DATACENTERS=$1 # single or multi
 N=$2 # number of nodes
-BLOCKSIZE=$3 # block size (n txs)
+BLOCK_SIZE=$3 # block size (n txs) 
 TXSIZE=$4 # tx size
 N_BLOCKS=$5 # number of blocks for the whole experiment
 MACH_PREFIX=$6 # machine name prefix
 RESULTS=$7
 
+export BLOCK_SIZE # inherited by start.sh
+
 echo "####################################" 
 echo "Experiment!"
 echo "Nodes: $N"
-echo "Block size: $BLOCKSIZE"
+echo "Block size: $BLOCK_SIZE"
 echo "Tx size: $TXSIZE"
 echo "Machine prefix: $MACH_PREFIX"
 echo ""
 
 NODE_DIRS=${MACH_PREFIX}_data
 bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
+
+echo "Start the crasher process"
+# start a process that kills and restarts a random -1/3 every 5 seconds
+go build -o crasher ./utils/crasher.go
+./crasher $MACH_PREFIX $N bench_app_tmnode &
+CRASHER_PROC=$!
 
 # start the tx player on each node
 go run utils/transact_concurrent.go $MACH_PREFIX $N 0
@@ -59,16 +67,6 @@ done
 echo "Wait a few seconds to let validators sync"
 sleep 2
 
-
-# activate mempools
-for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
-done
-
-# start a process that kills and restarts a random node every second
-go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
-CRASHER_PROC=$!
-
 # massage the config file
 echo "{}" > mon.json
 netmon chains-and-vals chain mon.json $NODE_DIRS
@@ -76,6 +74,7 @@ netmon chains-and-vals chain mon.json $NODE_DIRS
 # start the netmon in bench mode 
 netmon bench --n_blocks=$N_BLOCKS mon.json $RESULTS 
 
+echo "Done benchmark"
 
 if [[ "$NET_TEST_PROF" != "" ]]; then
 	# stop cpu profilers and snap a heap profile
@@ -84,3 +83,7 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_end.prof\"
 	done
 fi
+
+echo "Killing crash process"
+kill -9 $CRASHER_PROC
+

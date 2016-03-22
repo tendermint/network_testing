@@ -3,10 +3,10 @@ package main
 import (
 	"bytes"
 	"crypto/rand"
-	"encoding/binary"
 	"encoding/hex"
 	"flag"
 	"fmt"
+	mrand "math/rand"
 	"os"
 	"os/exec"
 	"strconv"
@@ -14,10 +14,21 @@ import (
 	"sync"
 	"time"
 
-	"github.com/eris-ltd/eris-db/Godeps/_workspace/src/github.com/tendermint/tendermint/types"
+	ebi "github.com/eris-ltd/eris-abi/core"
+	acm "github.com/eris-ltd/eris-db/account"
+	types "github.com/eris-ltd/eris-db/txs"
 	"github.com/tendermint/go-rpc/client"
 	rpctypes "github.com/tendermint/go-rpc/types"
 )
+
+var contractAddr []byte
+
+var contractAddrHex = flag.String("contract", "", "address of contract")
+var abiFile = flag.String("abi-file", "/data/tendermint/eris/abi", "path to abi file")
+var chainID = flag.String("chainID", "eris-chain", "chain id")
+var readProp = flag.Float64("read-prop", 0.1, "percentage of txs which should be reads")
+var startAccount = flag.Int("start-acc", 0, "account index to start sending txs from")
+var nAccounts = flag.Int("n-acc", 10, "number of accounts to use to send txs")
 
 func main() {
 	flag.Parse()
@@ -61,13 +72,30 @@ func main() {
 	}
 	errCh := make(chan error, 1000)
 
+	if *contractAddrHex == "" {
+		fmt.Println("Must specify a contract address for eris txs")
+		os.Exit(1)
+	}
+	contractAddr, err = hex.DecodeString(*contractAddrHex)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+
+	// generate keys deterministically
+	privAccs := make([]*acm.PrivAccount, *nAccounts)
+	for i := *startAccount; i < *nAccounts; i++ {
+		privAccs[i] = acm.GenPrivAccountFromSecret(fmt.Sprintf("%d", i))
+	}
+
 	wg := new(sync.WaitGroup)
 	wg.Add(len(hosts))
 	start := time.Now()
 	fmt.Printf("Sending %d txs on every host %v\n", nTxs, hosts)
+	nonceMap := make(map[string]int)
 	for thisHostI, thisHost := range hosts {
 		hostIndex := thisHostI + 1 // plus one because machine names are 1-based
-		go broadcastTxsToHost(wg, errCh, hostIndex, thisHost, nTxs, machPrefix, 0)
+		go broadcastTxsToHost(wg, errCh, hostIndex, thisHost, nTxs, machPrefix, 0, privAccs, nonceMap)
 	}
 	wg.Wait()
 	fmt.Println("Done broadcasting txs. Took", time.Since(start))
@@ -84,8 +112,11 @@ func machIP(machPrefix string, n int) string {
 	return strings.TrimSpace(buf.String())
 }
 
-func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost string, nTxs int, machPrefix string, txCount int) {
+func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost string, nTxs int, machPrefix string, txCount int, privAccs []*acm.PrivAccount, nonceMap map[string]int) {
 	reconnectSleepSeconds := time.Second * 1
+
+	// can handle disconnects with nonceMap by loading from rpc every time.
+	// for now assume nodes dont crash and ws is perfect and nonces start at 0
 
 	// thisStart := time.Now()
 	// cli := rpcclient.NewClientURI(valHost + ":46657")
@@ -94,7 +125,7 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 	if _, err := cli.Start(); err != nil {
 		if nTxs == 0 {
 			time.Sleep(reconnectSleepSeconds)
-			broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, txCount)
+			broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, txCount, privAccs, nonceMap)
 			return
 		}
 		fmt.Printf("Error starting websocket connection to val%d (%s): %v\n", valI, valHost, err)
@@ -116,15 +147,15 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 			case err := <-cli.ErrorsCh:
 				fmt.Println("err: val", valI, valHost, err)
 			case <-cli.Quit:
-				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count)
+				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count, privAccs, nonceMap)
 				return
 			case <-reconnect:
-				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count)
+				broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count, privAccs, nonceMap)
 				return
 			case <-ticker.C:
 				if nTxs == 0 {
 					cli.Stop()
-					broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count)
+					broadcastTxsToHost(wg, errCh, valI, valHost, nTxs, machPrefix, count, privAccs, nonceMap)
 					return
 				}
 			}
@@ -142,12 +173,49 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 			return
 		}
 
-		tx := generateTx(i, valI)
+		key := make([]byte, 32)
+		value := make([]byte, 32)
+		if _, err := rand.Read(key); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		if _, err := rand.Read(value); err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		var txDataHex string
+		var err error
+
+		u := mrand.Float64()
+		if u < *readProp {
+			txDataHex, err = ebi.FilePack(*abiFile, []string{"get", string(key)}...)
+		} else {
+			txDataHex, err = ebi.FilePack(*abiFile, []string{"set", string(key), string(value)}...)
+		}
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		txData, err := hex.DecodeString(txDataHex)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+
+		privI := mrand.Intn(len(privAccs))
+		privAcc := privAccs[privI]
+		nonce := nonceMap[string(privAcc.Address)] + 1
+		tx := types.NewCallTxWithNonce(privAcc.PubKey, contractAddr, txData, 1, 10000, 0, nonce)
+		tx.Sign(*chainID, privAcc)
+		nonceMap[string(privAcc.Address)] = nonce
+
 		if err := cli.WriteJSON(rpctypes.RPCRequest{
 			JSONRPC: "2.0",
 			ID:      "",
 			Method:  "broadcast_tx_async",
-			Params:  []interface{}{hex.EncodeToString(tx)},
+			Params:  []interface{}{tx},
 		}); err != nil {
 			fmt.Printf("Error sending tx %d to validator %d: %v. Attempt reconnect\n", i, valI, err)
 			reconnect <- struct{}{}
@@ -161,17 +229,4 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 		}
 	}
 	fmt.Printf("Done sending %d txs to %s%d (%s)\n", nTxs, machPrefix, valI, valHost)
-}
-
-func generateTx(i, valI int) []byte {
-	// a tx encodes the validator index, the tx number, and some random junk
-	// TODO: read random bytes into more of the tx
-	tx := make([]byte, 250)
-	binary.PutUvarint(tx[:32], uint64(valI))
-	binary.PutUvarint(tx[32:64], uint64(i))
-	if _, err := rand.Read(tx[234:]); err != nil {
-		fmt.Println("err reading from crypto/rand", err)
-		os.Exit(1)
-	}
-	return tx
 }

@@ -27,13 +27,15 @@ echo ""
 NODE_DIRS=${MACH_PREFIX}_data
 bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
 
+# deploy the contract
+
 # deactivate mempools
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" > /dev/null &
 done
 
 # start the tx player on each node
-go run utils/transact_concurrent.go $MACH_PREFIX $N $N_TXS
+go run eris/transact_concurrent.go $MACH_PREFIX $N $N_TXS
 
 export GO15VENDOREXPERIMENT=0 
 #go run utils/transact.go $N_TXS $MACH_PREFIX $N

@@ -12,9 +12,9 @@ import (
 	"time"
 )
 
-var contractAddrHex = flag.String("contract", "", "address of contract")
+var contractAddrHex = flag.String("contract", "4D5F1BB2AED47C6C0F7E1155EE0B91AC34A7BA12", "address of contract")
 var chainID = flag.String("chainID", "eris-chain", "chain id")
-var nAccounts = flag.Int("n", 1000, "number of accounts")
+var nAccounts = flag.Int("n", 8, "number of accounts")
 
 func main() {
 	args := os.Args[1:]
@@ -44,10 +44,10 @@ func main() {
 	wg.Add(len(hosts))
 	start := time.Now()
 	fmt.Printf("Copying transactor to each host\n")
-	nAccs := *nAccounts / len(hosts)
+	nAccs := (*nAccounts + 1) / len(hosts) // +1 because first account used for deploy
 	for thisHostI, thisHost := range hosts {
 		hostIndex := thisHostI + 1 // plus one because machine names are 1-based
-		go runTransactor(wg, hostIndex, thisHost, nTxs, machPrefix, thisHostI*nAccs, nAccs)
+		go runTransactor(wg, hostIndex, thisHost, nTxs, machPrefix, thisHostI*nAccs+1, nAccs)
 	}
 	wg.Wait()
 	fmt.Println("Done starting transactor on all nodes. Took", time.Since(start))
@@ -86,12 +86,12 @@ func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machP
 	*/
 
 	// this one runs in daemon mode!
-	cmd := exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d",
-		"--volumes-from=bench_app_tmcommon", "--link=bench_app_tmnode:tmnode",
-		"tendermint/tmbase:dev", "go", "run", "transact.go",
+	cmd := exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--name", "txer",
+		"--link=bench_app_tmnode:tmnode",
+		"tendermint/erisdbtxer", "go", "run", "/data/tendermint/transact.go",
 		"-contract", *contractAddrHex,
 		"-abi-file", "getset.abi",
-		"chainID", *chainID,
+		"-chainID", *chainID,
 		"-start-acc", fmt.Sprintf("%d", startAcc),
 		"-n-acc", fmt.Sprintf("%d", nAccs),
 		fmt.Sprintf("%d", nTxs), "docker_link",

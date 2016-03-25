@@ -20,8 +20,9 @@ var chainID = flag.String("chainID", "eris-chain", "chain ID")
 func main() {
 	flag.Parse()
 
-	accounts := make([]gentypes.GenesisAccount, *nAccounts)
-	for i := 0; i < *nAccounts; i++ {
+	nAccs := *nAccounts + 1 // first account used for deploying
+	accounts := make([]gentypes.GenesisAccount, nAccs)
+	for i := 0; i < nAccs; i++ {
 		secret := fmt.Sprintf("%d", i)
 		privAcc := acm.GenPrivAccountFromSecret(secret)
 		accounts[i] = gentypes.GenesisAccount{

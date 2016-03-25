@@ -19,11 +19,12 @@ import (
 	types "github.com/eris-ltd/eris-db/txs"
 	"github.com/tendermint/go-rpc/client"
 	rpctypes "github.com/tendermint/go-rpc/types"
+	"github.com/tendermint/go-wire"
 )
 
 var contractAddr []byte
 
-var contractAddrHex = flag.String("contract", "", "address of contract")
+var contractAddrHex = flag.String("contract", "4D5F1BB2AED47C6C0F7E1155EE0B91AC34A7BA12", "address of contract") // determinism!
 var abiFile = flag.String("abi-file", "/data/tendermint/eris/abi", "path to abi file")
 var chainID = flag.String("chainID", "eris-chain", "chain id")
 var readProp = flag.Float64("read-prop", 0.1, "percentage of txs which should be reads")
@@ -83,9 +84,9 @@ func main() {
 	}
 
 	// generate keys deterministically
-	privAccs := make([]*acm.PrivAccount, *nAccounts)
-	for i := *startAccount; i < *nAccounts; i++ {
-		privAccs[i] = acm.GenPrivAccountFromSecret(fmt.Sprintf("%d", i))
+	privAccs := []*acm.PrivAccount{}
+	for i := *startAccount; i < (*startAccount + *nAccounts); i++ {
+		privAccs = append(privAccs, acm.GenPrivAccountFromSecret(fmt.Sprintf("%d", i)))
 	}
 
 	wg := new(sync.WaitGroup)
@@ -210,12 +211,13 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 		tx := types.NewCallTxWithNonce(privAcc.PubKey, contractAddr, txData, 1, 10000, 0, nonce)
 		tx.Sign(*chainID, privAcc)
 		nonceMap[string(privAcc.Address)] = nonce
+		txBytes := wire.BinaryBytes(struct{ types.Tx }{tx})
 
 		if err := cli.WriteJSON(rpctypes.RPCRequest{
 			JSONRPC: "2.0",
 			ID:      "",
 			Method:  "broadcast_tx_async",
-			Params:  []interface{}{tx},
+			Params:  []interface{}{hex.EncodeToString(txBytes)},
 		}); err != nil {
 			fmt.Printf("Error sending tx %d to validator %d: %v. Attempt reconnect\n", i, valI, err)
 			reconnect <- struct{}{}

@@ -24,10 +24,23 @@ echo "Tx size: $TXSIZE"
 echo "Machine prefix: $MACH_PREFIX"
 echo ""
 
-NODE_DIRS=${MACH_PREFIX}_data
-bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
+APP_HASH=0x400ACFCD5A1156D2F9CB4887847BC67DFDA734EE #deterministic
+export PROXY_APP_INIT_FILE=eris/init_erisdb.sh
 
-# deploy the contract
+
+NODE_DIRS=${MACH_PREFIX}_data
+bash eris/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS $APP_HASH
+
+# activate mempools
+for i in `seq 1 $N`; do
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"100\" > /dev/null &
+done
+
+# deploy the contract (contract address is deterministic)
+go run eris/deploy.go eris/getset.evm
+
+# let it commit
+sleep 5
 
 # deactivate mempools
 for i in `seq 1 $N`; do
@@ -94,12 +107,6 @@ sleep 2
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
 done
-
-if [[ "$CRASH_FAILURES" != "" ]]; then
-	# start a process that kills and restarts a random node every second
-	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
-	CRASHER_PROC=$!
-fi
 
 # massage the config file
 echo "{}" > mon.json

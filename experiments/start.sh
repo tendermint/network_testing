@@ -3,9 +3,14 @@
 MACH_PREFIX=$1
 N=$2
 NODE_DIRS=$3
+APP_HASH=$4
+
+if [[ "$APP_HASH" == "" ]]; then
+	APP_HASH=nil
+fi
 
 # initialize directories
-mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash nil $NODE_DIRS
+mintnet init --machines "${MACH_PREFIX}[1-${N}]" chain --app-hash $APP_HASH $NODE_DIRS
 
 if [[ "$TIMEOUT_PROPOSE" == "" ]]; then
 	TIMEOUT_PROPOSE=3000 # ms
@@ -60,7 +65,7 @@ if [[ "$TM_IMAGE" == "" ]]; then
 	TM_IMAGE="tendermint/tmbase:dev"
 	echo "#! /bin/bash" > $NODE_DIRS/core/init.sh
 fi
-echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" --proxy_app=nilapp" >> $NODE_DIRS/core/init.sh
+echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" " >> $NODE_DIRS/core/init.sh
 
 tmsp_conditions="--no-tmsp"
 # overwrite the app file

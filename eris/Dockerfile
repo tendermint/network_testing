@@ -35,6 +35,12 @@ RUN apt-get update && \
 # set go vendoring
 ENV GO15VENDOREXPERIMENT 1
 
+# install glide for golang pkg dev
+ENV REPO $GOPATH/src/github.com/Masterminds/glide
+RUN mkdir -p $REPO
+RUN git clone https://github.com/Masterminds/glide $REPO
+RUN cd $REPO && make build && cp glide /usr/local/bin/
+
 # install erisdb tmsp
 ENV REPO "github.com/eris-ltd/eris-db"
 ENV BRANCH "tmsp"
@@ -43,17 +49,20 @@ RUN mkdir -p $GOPATH/src/$REPO
 RUN git clone https://$REPO $GOPATH/src/$REPO
 WORKDIR $GOPATH/src/$REPO
 RUN git fetch origin $BRANCH && git checkout $BRANCH 
+RUN go get ./account
+RUN go get ./txs
 
 RUN go get github.com/eris-ltd/eris-abi/...
 RUN go get github.com/tendermint/go-rpc/...
+RUN go get github.com/tendermint/go-merkle/...
 
 # Persist data, set user
 WORKDIR $DATA_ROOT
 VOLUME $DATA_ROOT
 
 # copy in some data
-COPY transact.go transact.go
-COPY getset.abi getset.abi
+COPY transact.go /data/tendermint/transact.go
+COPY getset.abi /data/tendermint/getset.abi
 
 USER $USER
 ENV TMROOT $DATA_ROOT
@@ -61,7 +70,7 @@ ENV TMROOT $DATA_ROOT
 EXPOSE 46656
 EXPOSE 46657
 
-RUN go build transact.go
+RUN go build /data/tendermint/transact.go
 
 # overwrite
-CMD ["go", "run", "transact.go"]
+CMD ["go", "run", "/data/tendermint/transact.go"]

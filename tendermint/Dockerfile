@@ -37,7 +37,7 @@ ENV GO15VENDOREXPERIMENT 1
 ENV REPO $GOPATH/src/github.com/Masterminds/glide
 RUN mkdir -p $REPO
 RUN git clone https://github.com/Masterminds/glide $REPO
-RUN cd $REPO && make bootstrap && make build && cp glide /usr/local/bin/
+RUN cd $REPO && make build && cp glide /usr/local/bin/
 
 ENV TMREPO "github.com/tendermint/tendermint"
 ENV BRANCH "develop"

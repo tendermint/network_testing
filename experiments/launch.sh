@@ -12,6 +12,7 @@ DATACENTERS=$1 # single or multi
 N=$2 # number of nodes
 MACH_PREFIX=$3 # machine name prefix
 NODE_DIRS=$4
+APP_HASH=$5
 
 echo "Checking for machines."
 # make sure we have enough nodes
@@ -31,7 +32,7 @@ fi
 
 # create node data and start all nodes
 if [[ ! -d "$NODE_DIRS" ]]; then
-	bash experiments/start.sh $MACH_PREFIX $N $NODE_DIRS
+	bash experiments/start.sh $MACH_PREFIX $N $NODE_DIRS $APP_HASH
 	ifExit "failed to start tendermint"
 	echo "All nodes started"
 else

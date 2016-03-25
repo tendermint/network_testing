@@ -52,8 +52,8 @@ func main() {
 		machPrefix = "localhost"
 		hosts = []string{"localhost:46657"}
 	} else if host == "docker_link" {
-		machPrefix = "tmnode"
-		hosts = []string{"tmnode:46657"}
+		machPrefix = "tmcore"
+		hosts = []string{"tmcore:46657"}
 	} else {
 		machPrefix = host
 		if len(args) < 3 {

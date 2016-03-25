@@ -26,7 +26,7 @@ fi
 
 PROXY_APP_ADDR="nilapp" # in process nothingness
 if [[ "$PROXY_APP_INIT_FILE" != "" ]]; then
-	PROXY_APP_ADDR="tcp://bench_app_tmapp:46657" # docker link
+	PROXY_APP_ADDR="unix:///data/tendermint/app/app.sock"
 fi
 
 echo "PROXY APP INIT FILE $PROXY_APP_INIT_FILE"
@@ -85,4 +85,4 @@ if [[ "$PROXY_APP_INIT_FILE" != "" ]]; then
 fi
 
 # start the nodes
-mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmnode-image $TM_IMAGE bench_app $NODE_DIRS
+mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmcore-image $TM_IMAGE bench_app $NODE_DIRS

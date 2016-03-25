@@ -32,7 +32,7 @@ bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
 echo "Start the crasher process"
 # start a process that kills and restarts a random -1/3 every 5 seconds
 go build -o crasher ./utils/crasher.go
-./crasher $MACH_PREFIX $N bench_app_tmnode &
+./crasher $MACH_PREFIX $N bench_app_tmcore &
 CRASHER_PROC=$!
 
 # start the tx player on each node

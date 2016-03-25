@@ -87,7 +87,7 @@ func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machP
 
 	// this one runs in daemon mode!
 	cmd := exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--name", "txer",
-		"--link=bench_app_tmnode:tmnode",
+		"--link=bench_app_tmcore:tmcore",
 		"tendermint/erisdbtxer", "go", "run", "/data/tendermint/transact.go",
 		"-contract", *contractAddrHex,
 		"-abi-file", "getset.abi",

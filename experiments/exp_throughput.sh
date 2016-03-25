@@ -95,7 +95,7 @@ done
 
 if [[ "$CRASH_FAILURES" != "" ]]; then
 	# start a process that kills and restarts a random node every second
-	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmnode &
+	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmcore &
 	CRASHER_PROC=$!
 fi
 

@@ -40,6 +40,6 @@ else
 	echo "Tendermint already started."
 
 	# echo "Restarting nodes."
-	# mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmnode \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmnode
+	# mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmcore \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmcore
 fi
 

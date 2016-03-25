@@ -31,20 +31,22 @@ export PROXY_APP_INIT_FILE=eris/init_erisdb.sh
 NODE_DIRS=${MACH_PREFIX}_data
 bash eris/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS $APP_HASH
 
+sleep 2
+
 # activate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"100\" > /dev/null &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"100\" #> /dev/null &
 done
 
 # deploy the contract (contract address is deterministic)
-go run eris/deploy.go eris/getset.evm
+go run eris/deploy.go -host $(docker-machine ip benchik1) eris/getset.evm
 
 # let it commit
 sleep 5
 
 # deactivate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" > /dev/null &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" #> /dev/null &
 done
 
 # start the tx player on each node
@@ -114,12 +116,7 @@ netmon chains-and-vals chain mon.json $NODE_DIRS
 
 # start the netmon in bench mode 
 mkdir -p $RESULTS
-if [[ "$N" == "2" ]]; then
-	TOTAL_TXS=$(($N_TXS*2))	
-else
-	TOTAL_TXS=$(($N_TXS*4)) # N_TXS should be blocksize*4. So tests should run for 16 blocks
-fi
-netmon bench --n_txs=$TOTAL_TXS mon.json $RESULTS 
+netmon bench --n_blocks=16 mon.json $RESULTS 
 
 
 if [[ "$NET_TEST_PROF" != "" ]]; then

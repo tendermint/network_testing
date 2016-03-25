@@ -75,4 +75,4 @@ if [[ "$PROXY_APP_INIT_FILE" != "" ]]; then
 fi
 
 # start the nodes
-mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmnode-image $TM_IMAGE bench_app $NODE_DIRS
+mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmcore-image $TM_IMAGE bench_app $NODE_DIRS

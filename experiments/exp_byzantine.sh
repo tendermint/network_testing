@@ -29,12 +29,6 @@ echo ""
 NODE_DIRS=${MACH_PREFIX}_data
 bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
 
-echo "Start the crasher process"
-# start a process that kills and restarts a random -1/3 every 5 seconds
-go build -o crasher ./utils/crasher.go
-./crasher $MACH_PREFIX $N bench_app_tmcore &
-CRASHER_PROC=$!
-
 # start the tx player on each node
 go run utils/transact_concurrent.go $MACH_PREFIX $N 0
 
@@ -71,6 +65,14 @@ sleep 2
 echo "{}" > mon.json
 netmon chains-and-vals chain mon.json $NODE_DIRS
 
+echo "Make them byzantine"
+# make the first third of them byzantine
+N_BYZ=$((($N - 1)/3))
+for i in `seq 1 $N_BYZ`; do
+	echo "Make validator $i byzantine"
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"bool\"\&key=\"byzantine\"\&value=\"true\"
+done
+
 mkdir -p $RESULTS
 # start the netmon in bench mode 
 netmon bench --n_blocks=$N_BLOCKS mon.json $RESULTS 
@@ -84,7 +86,3 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_end.prof\"
 	done
 fi
-
-echo "Killing crash process"
-kill -9 $CRASHER_PROC
-

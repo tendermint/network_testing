@@ -38,7 +38,7 @@ skip_upnp=true
 seeds = ""
 fast_sync = true
 db_backend = "memdb"
-log_level = "notice"
+log_level = "info"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
 

@@ -14,7 +14,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/eris-ltd/eris-db/Godeps/_workspace/src/github.com/tendermint/tendermint/types"
 	"github.com/tendermint/go-rpc/client"
 	rpctypes "github.com/tendermint/go-rpc/types"
 )
@@ -40,8 +39,8 @@ func main() {
 		machPrefix = "localhost"
 		hosts = []string{"localhost:46657"}
 	} else if host == "docker_link" {
-		machPrefix = "tmnode"
-		hosts = []string{"tmnode:46657"}
+		machPrefix = "tmcore"
+		hosts = []string{"tmcore:46657"}
 	} else {
 		machPrefix = host
 		if len(args) < 3 {
@@ -103,9 +102,9 @@ func broadcastTxsToHost(wg *sync.WaitGroup, errCh chan error, valI int, valHost 
 
 	reconnect := make(chan struct{})
 	go func(count int) {
-		ticker := time.NewTicker(reconnectSleepSeconds)
 	LOOP:
 		for {
+			ticker := time.NewTicker(reconnectSleepSeconds)
 			select {
 			case <-cli.ResultsCh:
 				count += 1

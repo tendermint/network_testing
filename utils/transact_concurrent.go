@@ -14,7 +14,7 @@ import (
 func main() {
 	args := os.Args[1:]
 	if len(args) < 3 {
-		fmt.Println("transact.go expects at least two arguments (mach prefix, nvals, ntxs)")
+		fmt.Println("transact.go expects three arguments (mach prefix, nvals, ntxs)")
 		os.Exit(1)
 	}
 
@@ -70,7 +70,7 @@ func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machP
 	cmd.Run()
 
 	// this one runs in daemon mode!
-	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--volumes-from=bench_app_tmcommon", "--link=bench_app_tmnode:tmnode", "tendermint/tmbase:dev", "go", "run", "transact.go", fmt.Sprintf("%d", nTxs), "docker_link")
+	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--volumes-from=bench_app_tmcommon", "--link=bench_app_tmcore:tmcore", "tendermint/tmbase:dev", "go", "run", "transact.go", fmt.Sprintf("%d", nTxs), "docker_link")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

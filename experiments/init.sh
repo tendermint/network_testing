@@ -1,7 +1,7 @@
 #! /bin/bash
 
 TMREPO="github.com/tendermint/tendermint"
-BRANCH="develop"
+BRANCH="byzantine"
 
 go get -d $TMREPO/cmd/tendermint
 cd $GOPATH/src/$TMREPO

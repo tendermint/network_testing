@@ -44,7 +44,7 @@ func collectLogs(wg *sync.WaitGroup, prefix string, i int, resultsDir string) {
 	cmd.Run()
 
 	runCommandToFile("docker-machine", []string{"inspect", mach}, path.Join(dir, "inspect"))
-	runCommandToFile("docker-machine", []string{"ssh", mach, "docker", "logs", "bench_app_tmnode"}, path.Join(dir, "tendermint.log"))
+	runCommandToFile("docker-machine", []string{"ssh", mach, "docker", "logs", "bench_app_tmcore"}, path.Join(dir, "tendermint.log"))
 
 	wg.Done()
 }

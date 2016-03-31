@@ -3,8 +3,8 @@
 mach=$1
 profDir=$2
 
-docker-machine ssh $mach docker cp bench_app_tmnode:/go/bin/tendermint tendermint.bin
-docker-machine ssh $mach docker cp bench_app_tmnode:/data/tendermint/core/cpu.prof cpu.prof
+docker-machine ssh $mach docker cp bench_app_tmcore:/go/bin/tendermint tendermint.bin
+docker-machine ssh $mach docker cp bench_app_tmcore:/data/tendermint/core/cpu.prof cpu.prof
 
 mkdir -p $profDir
 

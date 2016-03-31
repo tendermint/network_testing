@@ -40,7 +40,7 @@ RUN git clone https://github.com/Masterminds/glide $REPO
 RUN cd $REPO && make build && cp glide /usr/local/bin/
 
 ENV TMREPO "github.com/tendermint/tendermint"
-ENV BRANCH "develop"
+ENV BRANCH "byzantine"
 
 RUN go get -d $TMREPO/cmd/tendermint
 WORKDIR $GOPATH/src/$TMREPO

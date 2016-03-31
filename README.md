@@ -19,6 +19,8 @@ To run, for instance, the normal experiments:
 The script will launch all necessary machines using docker-machine and do all necessary setup, 
 writing all results into the `<results dir>`.
 
+# notes
+
 Each top level benchmark script contains a loop over something like the following:
 
 ```
@@ -50,4 +52,7 @@ A transaction player image is started on every machine to send txs to each valid
 See the various flags in the scripts for additional control, for using profilers, and for setting other params.
 
 The config file used by the tendermint nodes can be found inline in experiments/start.sh
+
+All docker containers can be removed with `bash utils/rm.sh <mach prefix> <N>` and machines can be removed with `bash utils/rm_mach.sh <mach prefix> <N>`
+
 

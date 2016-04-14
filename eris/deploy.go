@@ -47,11 +47,12 @@ func main() {
 	tx := types.NewCallTxWithNonce(privAcc.PubKey, []byte{}, txData, 1, 10000, 0, nonce)
 	tx.Sign(*chainID, privAcc)
 
+	fmt.Println("Deploying contract tx", tx)
 	var result ctypes.TMResult
 	cli := rpcclient.NewClientJSONRPC(*host + ":46657")
 	_, err = cli.Call("broadcast_tx_sync", []interface{}{wire.BinaryBytes(struct{ types.Tx }{tx})}, &result)
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println(err, *host, cli)
 		os.Exit(1)
 	}
 	fmt.Println(result)

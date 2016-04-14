@@ -62,12 +62,14 @@ for t in `seq 1 100`; do
 			echo "val $i only has $n txs in mempool"
 		fi
 	done
-	if [[ "$done_cum" == "$N" ]]; then
+	if [[ "$done_cum" -ge "$N" ]]; then
 		break
+	else
+		echo "still waiting $t. got $done_cum, need $N"
 	fi
 	sleep 1
 done
-if [[ "$done_cum" != "$N" ]]; then
+if [[ "$done_cum" -lt "$N" ]]; then
 	echo "transactions took too long to load!"
 	exit 1
 fi

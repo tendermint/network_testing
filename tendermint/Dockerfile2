@@ -1,0 +1,24 @@
+# Pull base image.
+FROM tendermint/base
+
+ENV TMREPO "github.com/tendermint/tendermint"
+ENV BRANCH "mempool"
+
+RUN mkdir $GOPATH/src/github.com/tendermint
+RUN git clone https://$TMREPO $GOPATH/src/$TMREPO
+WORKDIR $GOPATH/src/$TMREPO
+RUN git fetch origin $BRANCH && git checkout -b $BRANCH origin/$BRANCH 
+RUN glide install
+RUN go install ./cmd/tendermint
+
+# Persist data, set user
+WORKDIR $DATA_ROOT
+VOLUME $DATA_ROOT
+USER $USER
+ENV TMROOT $DATA_ROOT
+
+EXPOSE 46656
+EXPOSE 46657
+
+# overwrite
+CMD ["tendermint"]

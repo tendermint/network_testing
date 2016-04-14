@@ -14,10 +14,13 @@ echo "Start node num: $START_N"
 echo "End node num: $END_N"
 echo ""
 
+if [[ "$AWS_INSTANCE_TYPE" == "" ]]; then
+	AWS_INSTANCE_TYPE="t2.medium"
+fi
 
 if [[ "$DATACENTERS" == "single" ]]; then
 	 # mintnet create --machines "${MACH_PREFIX}[${START_N}-${END_N}]" -- --driver=digitalocean --digitalocean-access-token $DO_TOKEN  --digitalocean-region "$REGION"
-	 mintnet create --machines "${MACH_PREFIX}[${START_N}-${END_N}]" -- --driver=amazonec2 --amazonec2-access-key=$AWS_ACCESS_KEY --amazonec2-secret-key=$AWS_SECRET_KEY --amazonec2-security-group=$AWS_SECURITY_GROUP --amazonec2-instance-type=t2.medium
+	 mintnet create --machines "${MACH_PREFIX}[${START_N}-${END_N}]" -- --driver=amazonec2 --amazonec2-access-key=$AWS_ACCESS_KEY --amazonec2-secret-key=$AWS_SECRET_KEY --amazonec2-security-group=$AWS_SECURITY_GROUP --amazonec2-instance-type=$AWS_INSTANCE_TYPE
 	 mintnet docker --machines "${MACH_PREFIX}[${START_N}-${END_N}]"  -- \; sudo usermod -aG docker ubuntu
 elif [[ "$DATACENTERS" == "multi" ]]; then
 	go run utils/create.go amazonec2 $MACH_PREFIX $START_N $END_N

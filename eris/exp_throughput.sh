@@ -31,6 +31,11 @@ export PROXY_APP_INIT_FILE=eris/init_erisdb.sh
 NODE_DIRS=${MACH_PREFIX}_data
 bash eris/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS $APP_HASH
 
+# massage the config file
+echo "{}" > mon.json
+netmon chains-and-vals chain mon.json $NODE_DIRS
+mkdir -p $RESULTS
+
 sleep 2
 
 # activate mempools
@@ -39,7 +44,7 @@ for i in `seq 1 $N`; do
 done
 
 # deploy the contract (contract address is deterministic)
-go run eris/deploy.go -host $(docker-machine ip benchik1) eris/getset.evm
+go run eris/deploy.go -host $(docker-machine ip ${MACH_PREFIX}1) eris/getset.evm
 
 # let it commit
 sleep 5
@@ -75,12 +80,15 @@ for t in `seq 1 100`; do
 		n=`curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/num_unconfirmed_txs | jq .result[1].n_txs`
 		if [[ "$n" -ge "$N_TXS" ]]; then
 			done_cum=$((done_cum+1))
+			echo "all $n transactions loaded for validator $i"
 		else
 			echo "val $i only has $n txs in mempool"
 		fi
 	done
-	if [[ "$done_cum" == "$N" ]]; then
+	if [[ "$done_cum" -ge "$N" ]]; then
 		break
+	else
+		echo "still waiting. got $done_cum , need $N"
 	fi
 	sleep 1
 done
@@ -104,18 +112,12 @@ done
 echo "Wait a few seconds to let validators sync"
 sleep 2
 
-
 # activate mempools
 for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
 done
 
-# massage the config file
-echo "{}" > mon.json
-netmon chains-and-vals chain mon.json $NODE_DIRS
-
 # start the netmon in bench mode 
-mkdir -p $RESULTS
 netmon bench --n_blocks=16 mon.json $RESULTS 
 
 

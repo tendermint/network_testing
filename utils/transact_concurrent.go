@@ -58,19 +58,8 @@ func machIP(machPrefix string, n int) string {
 }
 
 func runTransactor(wg *sync.WaitGroup, valI int, valHost string, nTxs int, machPrefix string) {
-	// copy to machine
-	cmd := exec.Command("docker-machine", "scp", "utils/transact.go", fmt.Sprintf("%s%d:transact.go", machPrefix, valI))
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
-	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "cp", "transact.go", "bench_app_tmcommon:/data/tendermint/transact.go")
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Run()
-
 	// this one runs in daemon mode!
-	cmd = exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--volumes-from=bench_app_tmcommon", "--link=bench_app_tmcore:tmcore", "tendermint/tmbase:dev", "go", "run", "transact.go", fmt.Sprintf("%d", nTxs), "docker_link")
+	cmd := exec.Command("docker-machine", "ssh", fmt.Sprintf("%s%d", machPrefix, valI), "docker", "run", "-d", "--link=bench_app_tmcore:tmcore", "tendermint/transacter", "transacter", fmt.Sprintf("%d", nTxs), "docker_link")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	cmd.Run()

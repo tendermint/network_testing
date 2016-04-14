@@ -93,13 +93,17 @@ func createAmazonEC2Machines(prefix string, startN, endN int) {
 }
 
 func createAmazonEC2Machine(wg *sync.WaitGroup, prefix, region string, i int) {
+	instanceType := os.Getenv("AWS_INSTANCE_TYPE")
+	if instanceType == "" {
+		instanceType = "t2.medium"
+	}
 	cmd := exec.Command("docker-machine", "create", fmt.Sprintf("%s%d", prefix, i),
 		"--driver=amazonec2",
 		"--amazonec2-access-key="+os.Getenv("AWS_ACCESS_KEY"),
 		"--amazonec2-secret-key="+os.Getenv("AWS_SECRET_KEY"),
 		//"--amazonec2-vpc-id="+os.Getenv("AWS_VPC_ID"),
 		"--amazonec2-security-group="+os.Getenv("AWS_SECURITY_GROUP"),
-		"--amazonec2-instance-type=t2.medium",
+		"--amazonec2-instance-type="+instanceType,
 		"--amazonec2-region="+region)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr

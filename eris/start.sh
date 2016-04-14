@@ -44,14 +44,14 @@ skip_upnp=true
 seeds = ""
 fast_sync = true
 db_backend = "memdb"
-log_level = "notice"
+log_level = "info"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
 
 block_size=$BLOCK_SIZE
 timeout_propose=$TIMEOUT_PROPOSE
 timeout_commit=1 # don't wait for votes on commit; assume synchrony for everything else
-mempool_recheck=true # don't care about app state
+mempool_recheck=false # dont recheck mempool txs after a block
 mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=$CSWAL_LIGHT
 p2p_send_rate=51200000 # 50 MB/s
@@ -77,12 +77,18 @@ if [[ "$TM_IMAGE" == "" ]]; then
 fi
 echo "tendermint node --seeds="\$TMSEEDS" --moniker="\$TMNAME" " >> $NODE_DIRS/core/init.sh
 
-tmsp_conditions="--no-tmsp"
 # overwrite the app file
 if [[ "$PROXY_APP_INIT_FILE" != "" ]]; then
 	cp $PROXY_APP_INIT_FILE $NODE_DIRS/app/init.sh
-	tmsp_conditions="" # if we have an app file we're using tmsp
 fi
 
 # start the nodes
-mintnet start --machines "$MACH_PREFIX[1-${N}]" $tmsp_conditions --tmcore-image $TM_IMAGE bench_app $NODE_DIRS
+if [[ "$LOCAL_NODE" == "" ]]; then
+	mintnet start --machines "$MACH_PREFIX[1-${N}]" --no-merkleeyes --tmcore-image $TM_IMAGE bench_app $NODE_DIRS
+else
+	erisdb eris &> erisdb.log &
+	rm -rf eris/data
+	export TMROOT=$NODE_DIRS/${MACH_PREFIX}1/core 
+	tendermint unsafe_reset_all
+	tendermint node > tendermint.log &
+fi

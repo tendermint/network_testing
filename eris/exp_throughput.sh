@@ -92,7 +92,7 @@ for t in `seq 1 100`; do
 	fi
 	sleep 1
 done
-if [[ "$done_cum" != "$N" ]]; then
+if [[ "$done_cum" -lt "$N" ]]; then
 	echo "transactions took too long to load!"
 	exit 1
 fi

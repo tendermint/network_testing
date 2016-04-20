@@ -44,7 +44,7 @@ skip_upnp=true
 seeds = ""
 fast_sync = true
 db_backend = "memdb"
-log_level = "info"
+log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
 
@@ -67,6 +67,7 @@ done
 # copy in the app genesis file
 cp eris/genesis.json $NODE_DIRS/app/genesis.json
 cp eris/server_conf.toml $NODE_DIRS/app/server_conf.toml
+cp eris/config.toml $NODE_DIRS/app/config.toml
 
 # overwrite the mintnet core init file (so we can pick tendermint branch)
 cp experiments/init.sh $NODE_DIRS/core/init.sh

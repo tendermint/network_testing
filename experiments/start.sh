@@ -16,11 +16,14 @@ if [[ "$TIMEOUT_PROPOSE" == "" ]]; then
 	TIMEOUT_PROPOSE=3000 # ms
 fi
 if [[ "$BLOCK_SIZE" == "" ]]; then
-	# start at -1 so mempool doesn't empty, set manually with unsafe_config
-	BLOCK_SIZE=-1
+	# start at 0 so mempool doesn't empty, set manually with unsafe_config
+	BLOCK_SIZE=0
 fi
 if [[ "$CSWAL_LIGHT" == "" ]]; then
 	CSWAL_LIGHT=true # don't write block part messages
+fi
+if [[ "$FUZZ_ENABLE" == "" ]]; then
+	FUZZ_ENABLE="false" # dont even bother with fuzzer conn wrapper
 fi
 
 # NOTE: if not --no-tmsp, this is overwritten by mintnet ...
@@ -38,7 +41,7 @@ skip_upnp=true
 seeds = ""
 fast_sync = true
 db_backend = "memdb"
-log_level = "info"
+log_level = "notice"
 rpc_laddr = "0.0.0.0:46657"
 prof_laddr = "" 
 
@@ -48,9 +51,14 @@ timeout_commit=1 # don't wait for votes on commit; assume synchrony for everythi
 mempool_recheck=false # don't care about app state
 mempool_broadcast=false # don't broadcast mempool txs
 cswal_light=$CSWAL_LIGHT
-p2p_send_rate=51200000 # 50 MB/s
-p2p_recv_rate=51200000 # 50 MB/s
-max_msg_packet_payload_size=131072
+max_msg_packet_payload_size=65536 #1048576 
+block_part_size=32384 #262144 
+
+[p2p]
+send_rate=51200000 # 50 MB/s
+recv_rate=51200000 # 50 MB/s
+fuzz_enable=$FUZZ_ENABLE
+fuzz_mode="delay"
 EOL
 
 # copy the config file into every dir

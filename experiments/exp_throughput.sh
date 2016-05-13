@@ -29,7 +29,7 @@ bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
 
 # deactivate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"-1\" > /dev/null &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"0\" > /dev/null &
 done
 
 # start the tx player on each node
@@ -92,7 +92,7 @@ sleep 2
 
 # activate mempools
 for i in `seq 1 $N`; do
-	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\" &
+	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\"  &
 done
 
 if [[ "$CRASH_FAILURES" != "" ]]; then

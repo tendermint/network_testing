@@ -66,8 +66,14 @@ for i in `seq 1 $N`; do
 		cp $NODE_DIRS/chain_config.toml $NODE_DIRS/${MACH_PREFIX}$i/core/config.toml
 done
 
-# overwrite the mintnet core init file (so we can pick tendermint branch)
-cp experiments/init.sh $NODE_DIRS/core/init.sh
+# overwrite the tendermint core init.sh so we can specify the branch
+if [[ "$TMHEAD" != "" ]]; then
+	echo "Overwriting tendermint branch to $TMHEAD"
+	cat experiments/init.sh | sed "s/.*TMHEAD\=.*/TMHEAD\=$TMHEAD/" > $NODE_DIRS/core/init.sh
+else
+	cp experiments/init.sh $NODE_DIRS/core/init.sh
+fi
+
 if [[ "$TM_IMAGE" == "" ]]; then
 	# if we're using an image, just a bare script
 	TM_IMAGE="tendermint/tmbase:dev"

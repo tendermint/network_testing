@@ -1,4 +1,5 @@
 #! /bin/bash
+set -eu
 
 function ifExit(){
 	ecode=$?
@@ -16,6 +17,10 @@ N_TXS=$5 # number of transactions per validator
 MACH_PREFIX=$6 # machine name prefix
 RESULTS=$7
 
+set +u
+export CLOUD_PROVIDER=$8 # defaults to amazonec2 in utils/launch.sh
+set -u
+
 echo "####################################" 
 echo "Experiment!"
 echo "Nodes: $N"
@@ -23,6 +28,9 @@ echo "Block size: $BLOCKSIZE"
 echo "Tx size: $TXSIZE"
 echo "Machine prefix: $MACH_PREFIX"
 echo ""
+
+echo "TMIMAGE $TM_IMAGE"
+echo "TMHEAD $TMHEAD"
 
 NODE_DIRS=${MACH_PREFIX}_data
 bash experiments/launch.sh $DATACENTERS $N $MACH_PREFIX $NODE_DIRS
@@ -42,6 +50,7 @@ export GO15VENDOREXPERIMENT=0
 # TODO: ensure they're all at some height (?)
 
 #export NET_TEST_PROF=/data/tendermint/core
+set +u
 if [[ "$NET_TEST_PROF" != "" ]]; then
 	# start cpu profilers and snap a heap profile
 	for i in `seq 1 $N`; do
@@ -49,6 +58,7 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_start.prof\"
 	done
 fi
+set -u
 
 
 echo "Wait for transactions to load"
@@ -95,11 +105,13 @@ for i in `seq 1 $N`; do
 	curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_set_config?type=\"int\"\&key=\"block_size\"\&value=\"$BLOCKSIZE\"  &
 done
 
+set +u
 if [[ "$CRASH_FAILURES" != "" ]]; then
 	# start a process that kills and restarts a random node every second
 	go run utils/crasher.go $MACH_PREFIX $N bench_app_tmcore &
 	CRASHER_PROC=$!
 fi
+set -u
 
 # massage the config file
 echo "{}" > mon.json
@@ -115,6 +127,7 @@ fi
 netmon bench --n_txs=$TOTAL_TXS mon.json $RESULTS 
 
 
+set +u
 if [[ "$NET_TEST_PROF" != "" ]]; then
 	# stop cpu profilers and snap a heap profile
 	for i in `seq 1 $N`; do
@@ -122,5 +135,5 @@ if [[ "$NET_TEST_PROF" != "" ]]; then
 		curl -s $(docker-machine ip ${MACH_PREFIX}$i):46657/unsafe_write_heap_profile?filename=\"$NET_TEST_PROF/mem_end.prof\"
 	done
 fi
-
+set -u
 

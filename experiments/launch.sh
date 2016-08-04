@@ -16,7 +16,7 @@ APP_HASH=$5
 
 echo "Checking for machines."
 # make sure we have enough nodes
-n=$(docker-machine ls | grep $MACH_PREFIX | wc -l)
+n=$(docker-machine ls | awk '{print $1}' | grep $MACH_PREFIX | wc -l)
 if (("$n" < "$N")); then
 	# launch the nodes
 	bash utils/launch.sh $MACH_PREFIX $DATACENTERS $(($n+1)) $N
@@ -37,7 +37,7 @@ if [[ ! -d "$NODE_DIRS" ]]; then
 	echo "All nodes started"
 else
 	# if node data already exists, do nothing
-	echo "Tendermint already started."
+	echo "Node data exists. Tendermint already started or failed to cleanup."
 
 	# echo "Restarting nodes."
 	# mintnet docker --machines "${MACH_PREFIX}[1-$N]" -- \; docker stop bench_app_tmcore \; docker run --volumes-from bench_app_tmcommon --rm -e TMROOT=/data/tendermint/core tendermint/tmbase:dev tendermint unsafe_reset_all \; docker start bench_app_tmcore

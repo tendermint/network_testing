@@ -2,15 +2,15 @@
 FROM tendermint/base
 
 ENV TMREPO "github.com/tendermint/tendermint"
-ENV BRANCH "mempool"
+ENV BRANCH "develop"
 
 RUN mkdir $GOPATH/src/github.com/tendermint
 RUN git clone https://$TMREPO $GOPATH/src/$TMREPO
 WORKDIR $GOPATH/src/$TMREPO
 RUN git fetch origin $BRANCH && git checkout -b $BRANCH origin/$BRANCH 
+RUN make get_deps # so we have dependencies if using image for other scripts (eg transact.go)
 RUN glide install
 RUN go install ./cmd/tendermint
-RUN go get -u -t ./... # so we have dependencies if using image for other scripts (eg transact.go)
 
 # Persist data, set user
 WORKDIR $DATA_ROOT
